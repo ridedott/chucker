@@ -255,7 +255,7 @@ internal class TransactionAdapter internal constructor(
             if (!isLive(transaction)) return
             val startedAt = transaction.requestDate ?: return
             val elapsed = (System.currentTimeMillis() - startedAt).coerceAtLeast(0)
-            itemBinding.duration.text = GrpcPresentation.formatOffset(elapsed)
+            itemBinding.duration.text = GrpcPresentation.formatElapsed(elapsed)
         }
 
         fun setPulsing(isPulsing: Boolean) {

@@ -68,17 +68,31 @@
         app:layout_constraintTop_toBottomOf="@id/title"
         tools:text="{&quot;text&quot;:&quot;Hello&quot;}" />
 
-    <LinearLayout
-        android:id="@+id/details"
+    <TextView
+        android:id="@+id/timestamp"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:background="@drawable/chucker_bg_code_block"
-        android:orientation="vertical"
+        android:layout_marginTop="2dp"
+        android:textColor="?android:attr/textColorSecondary"
+        android:textSize="13sp"
         android:visibility="gone"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="@id/title"
         app:layout_constraintTop_toBottomOf="@id/subtitle"
+        tools:text="3:12:31.543 PM"
+        tools:visibility="visible" />
+
+    <LinearLayout
+        android:id="@+id/details"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/chucker_base_grid"
+        android:background="@drawable/chucker_bg_code_block"
+        android:orientation="vertical"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/timestamp"
         tools:visibility="visible">
 
         <TextView

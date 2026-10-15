@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:gravity="center_vertical"
@@ -8,14 +7,9 @@
     android:paddingHorizontal="@dimen/chucker_doub_grid"
     android:paddingVertical="12dp">
 
-    <TextView
-        android:id="@+id/time"
+    <Space
         android:layout_width="@dimen/chucker_octa_grid"
-        android:layout_height="wrap_content"
-        android:textColor="@color/chucker_status_live"
-        android:textSize="13sp"
-        android:typeface="monospace"
-        tools:text="+12.4 s" />
+        android:layout_height="0dp" />
 
     <FrameLayout
         android:layout_width="20dp"

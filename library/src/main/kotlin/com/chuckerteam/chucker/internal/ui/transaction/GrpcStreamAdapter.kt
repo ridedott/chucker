@@ -23,6 +23,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.chuckerteam.chucker.R
 import com.chuckerteam.chucker.databinding.ChuckerItemStreamDetailRowBinding
+import com.chuckerteam.chucker.databinding.ChuckerListItemStreamDetailsBinding
 import com.chuckerteam.chucker.databinding.ChuckerListItemStreamEventBinding
 import com.chuckerteam.chucker.databinding.ChuckerListItemStreamSummaryBinding
 import com.chuckerteam.chucker.databinding.ChuckerListItemStreamWaitingBinding
@@ -31,14 +32,22 @@ import com.chuckerteam.chucker.internal.data.entity.HttpHeader
 import com.chuckerteam.chucker.internal.support.FormatUtils
 import com.chuckerteam.chucker.internal.support.SpanTextUtil
 
-/** A row of the stream screen. */
+/** The stream screen: a summary pinned above a timeline. */
+internal data class StreamScreen(
+    val summary: StreamSummary,
+    val items: List<StreamItem>,
+)
+
+/** A row of the timeline, newest first. */
 internal sealed interface StreamItem {
     val id: String
 
-    data class Summary(
-        val summary: StreamSummary,
+    /** The rest of the overview, shown at the top of the timeline when the user asks for it. */
+    data class Details(
+        val rows: List<Pair<String, String>>,
+        val error: String?,
     ) : StreamItem {
-        override val id: String get() = "summary"
+        override val id: String get() = "details"
     }
 
     data class Event(
@@ -47,15 +56,13 @@ internal sealed interface StreamItem {
         override val id: String get() = "event:${row.position}"
     }
 
-    /** Shown at the end of the timeline while the stream is open. */
-    data class Waiting(
-        val elapsed: String,
-    ) : StreamItem {
+    /** Shown above the newest event while the stream is open. */
+    data object Waiting : StreamItem {
         override val id: String get() = "waiting"
     }
 }
 
-/** The essentials of the call, shown above its timeline. */
+/** The essentials of the call, pinned above its timeline. */
 internal data class StreamSummary(
     val status: String,
     @ColorInt val statusColor: Int,
@@ -70,8 +77,6 @@ internal data class StreamSummary(
     val receivedSize: String,
     val startedAndDeadline: String,
     val isExpanded: Boolean,
-    val details: List<Pair<String, String>>,
-    val error: String?,
 )
 
 /** One event of the timeline. [position] identifies it, since events are only ever appended. */
@@ -79,6 +84,7 @@ internal data class StreamEventRow(
     val position: Int,
     val event: GrpcEvent,
     val title: String,
+    val timestamp: String,
     @ColorInt val titleColor: Int?,
     @DrawableRes val icon: Int,
     @ColorInt val iconColor: Int,
@@ -95,8 +101,8 @@ internal data class StreamEventRow(
 }
 
 /**
- * Shows a streaming gRPC call: a summary of the call, then everything that happened in order. Rows
- * expand in place, and long messages only show their start, with a way to open the full message.
+ * Shows the timeline of a streaming gRPC call. Rows expand in place, and long messages only show their
+ * start, with a way to open the full message.
  */
 internal class GrpcStreamAdapter(
     private val isPulseEnabled: Boolean,
@@ -108,7 +114,7 @@ internal class GrpcStreamAdapter(
 
     override fun getItemViewType(position: Int): Int =
         when (getItem(position)) {
-            is StreamItem.Summary -> TYPE_SUMMARY
+            is StreamItem.Details -> TYPE_DETAILS
             is StreamItem.Event -> TYPE_EVENT
             is StreamItem.Waiting -> TYPE_WAITING
         }
@@ -119,7 +125,7 @@ internal class GrpcStreamAdapter(
     ): RecyclerView.ViewHolder {
         val inflater = LayoutInflater.from(parent.context)
         return when (viewType) {
-            TYPE_SUMMARY -> SummaryViewHolder(ChuckerListItemStreamSummaryBinding.inflate(inflater, parent, false))
+            TYPE_DETAILS -> DetailsViewHolder(ChuckerListItemStreamDetailsBinding.inflate(inflater, parent, false))
             TYPE_WAITING -> WaitingViewHolder(ChuckerListItemStreamWaitingBinding.inflate(inflater, parent, false))
             else -> EventViewHolder(ChuckerListItemStreamEventBinding.inflate(inflater, parent, false))
         }
@@ -130,102 +136,35 @@ internal class GrpcStreamAdapter(
         position: Int,
     ) {
         when (val item = getItem(position)) {
-            is StreamItem.Summary -> (holder as SummaryViewHolder).bind(item.summary)
+            is StreamItem.Details -> (holder as DetailsViewHolder).bind(item)
             is StreamItem.Event -> (holder as EventViewHolder).bind(item.row)
-            is StreamItem.Waiting -> (holder as WaitingViewHolder).bind(item)
+            is StreamItem.Waiting -> (holder as WaitingViewHolder).updatePulse()
         }
     }
 
     override fun onViewAttachedToWindow(holder: RecyclerView.ViewHolder) {
         // Animations stop when a view is detached, so they are restarted when it comes back.
-        when (holder) {
-            is SummaryViewHolder -> holder.updatePulse()
-            is WaitingViewHolder -> holder.updatePulse()
-        }
+        if (holder is WaitingViewHolder) holder.updatePulse()
     }
 
-    private fun ImageView.setPulsing(isPulsing: Boolean) {
-        if (isPulsing && isPulseEnabled) {
-            if (animation == null) startAnimation(GrpcPresentation.pulseAnimation())
-        } else {
-            clearAnimation()
-        }
-    }
-
-    inner class SummaryViewHolder(
-        private val binding: ChuckerListItemStreamSummaryBinding,
+    class DetailsViewHolder(
+        private val binding: ChuckerListItemStreamDetailsBinding,
     ) : RecyclerView.ViewHolder(binding.root) {
-        private val context = binding.root.context
-        private var details: List<Pair<String, String>>? = null
-        private var isLive = false
+        private var rows: List<Pair<String, String>>? = null
 
-        init {
-            binding.detailsButton.setOnClickListener { onToggle(KEY_DETAILS) }
-        }
-
-        fun bind(summary: StreamSummary) {
-            isLive = summary.isLive
-            binding.apply {
-                statusText.text = summary.status
-                statusText.setTextColor(summary.statusColor)
-                ViewCompat.setBackgroundTintList(
-                    statusPill,
-                    ColorStateList.valueOf(ColorUtils.setAlphaComponent(summary.statusColor, PILL_BACKGROUND_ALPHA)),
-                )
-                statusDot.isVisible = summary.isLive
-                callType.text = summary.callType
-                description.text = summary.description
-                description.setTextColor(summary.statusColor)
-                description.isVisible = summary.description != null
-                durationLabel.text = summary.durationLabel
-                durationValue.text = summary.duration
-                sentValue.text =
-                    countWithSize("↑ ${summary.sentCount}", summary.sentSize, R.color.chucker_color_primary)
-                receivedValue.text =
-                    countWithSize("↓ ${summary.receivedCount}", summary.receivedSize, R.color.chucker_status_live)
-                startedText.text = summary.startedAndDeadline
-
-                detailsButton.setText(
-                    if (summary.isExpanded) R.string.chucker_grpc_hide_details else R.string.chucker_grpc_details,
-                )
-                detailsButton.setIconResource(
-                    if (summary.isExpanded) R.drawable.chucker_ic_arrow_up else R.drawable.chucker_ic_arrow_down,
-                )
-                detailsContainer.isVisible = summary.isExpanded
-                if (summary.isExpanded) bindDetails(summary)
-            }
-            updatePulse()
-        }
-
-        fun updatePulse() = binding.statusDot.setPulsing(isLive)
-
-        private fun bindDetails(summary: StreamSummary) {
-            binding.errorText.text = summary.error
-            binding.errorText.isVisible = summary.error != null
-            // While the stream is live the summary is bound every second, so rows are only rebuilt when they change.
-            if (details == summary.details) return
-            details = summary.details
-            val inflater = LayoutInflater.from(context)
+        fun bind(details: StreamItem.Details) {
+            binding.errorText.text = details.error
+            binding.errorText.isVisible = details.error != null
+            if (rows == details.rows) return
+            rows = details.rows
+            val inflater = LayoutInflater.from(binding.root.context)
             binding.detailRows.removeAllViews()
-            for ((label, value) in summary.details) {
+            for ((label, value) in details.rows) {
                 val row = ChuckerItemStreamDetailRowBinding.inflate(inflater, binding.detailRows, true)
                 row.detailLabel.text = label
                 row.detailValue.text = value
             }
         }
-
-        private fun countWithSize(
-            count: String,
-            size: String,
-            colorRes: Int,
-        ): CharSequence =
-            SpannableStringBuilder()
-                .inSpans(ForegroundColorSpan(ContextCompat.getColor(context, colorRes))) { append(count) }
-                .append(' ')
-                .inSpans(
-                    RelativeSizeSpan(SIZE_RELATIVE_TEXT_SIZE),
-                    ForegroundColorSpan(binding.startedText.currentTextColor),
-                ) { append(size) }
     }
 
     inner class EventViewHolder(
@@ -250,6 +189,8 @@ internal class GrpcStreamAdapter(
                 subtitle.text = row.subtitle
                 subtitle.typeface = if (row.isSubtitleCode) Typeface.MONOSPACE else Typeface.DEFAULT
                 subtitle.isVisible = row.subtitle != null && (!row.isExpanded || row.keepsSubtitleWhenExpanded)
+                timestamp.text = row.timestamp
+                timestamp.isVisible = row.isExpanded
 
                 expandIcon.isVisible = row.isExpandable
                 expandIcon.setImageResource(
@@ -321,12 +262,7 @@ internal class GrpcStreamAdapter(
     inner class WaitingViewHolder(
         private val binding: ChuckerListItemStreamWaitingBinding,
     ) : RecyclerView.ViewHolder(binding.root) {
-        fun bind(item: StreamItem.Waiting) {
-            binding.time.text = binding.root.context.getString(R.string.chucker_grpc_time_offset, item.elapsed)
-            updatePulse()
-        }
-
-        fun updatePulse() = binding.dot.setPulsing(true)
+        fun updatePulse() = binding.dot.setPulsing(isPulseEnabled)
     }
 
     private class PreparedMessage(
@@ -341,14 +277,12 @@ internal class GrpcStreamAdapter(
 
         fun eventKey(position: Int): String = "event:$position"
 
-        private const val TYPE_SUMMARY = 0
+        private const val TYPE_DETAILS = 0
         private const val TYPE_EVENT = 1
         private const val TYPE_WAITING = 2
 
         private const val MAX_INLINE_LINES = 12
         private const val MAX_INLINE_CHARS = 2_000
-        private const val PILL_BACKGROUND_ALPHA = 0x2E
-        private const val SIZE_RELATIVE_TEXT_SIZE = 0.65f
         private val DiffCallback =
             object : DiffUtil.ItemCallback<StreamItem>() {
                 override fun areItemsTheSame(
@@ -361,5 +295,75 @@ internal class GrpcStreamAdapter(
                     newItem: StreamItem,
                 ) = oldItem == newItem
             }
+    }
+}
+
+/** Binds the summary pinned above the timeline. */
+internal class StreamSummaryBinder(
+    private val binding: ChuckerListItemStreamSummaryBinding,
+    private val isPulseEnabled: Boolean,
+    onToggleDetails: () -> Unit,
+) {
+    private val context = binding.root.context
+
+    init {
+        binding.detailsButton.setOnClickListener { onToggleDetails() }
+    }
+
+    fun bind(summary: StreamSummary) {
+        binding.apply {
+            statusText.text = summary.status
+            statusText.setTextColor(summary.statusColor)
+            ViewCompat.setBackgroundTintList(
+                statusPill,
+                ColorStateList.valueOf(ColorUtils.setAlphaComponent(summary.statusColor, PILL_BACKGROUND_ALPHA)),
+            )
+            statusDot.isVisible = summary.isLive
+            statusDot.setPulsing(summary.isLive && isPulseEnabled)
+            callType.text = summary.callType
+            description.text = summary.description
+            description.setTextColor(summary.statusColor)
+            description.isVisible = summary.description != null
+            durationLabel.text = summary.durationLabel
+            durationValue.text = summary.duration
+            sentValue.text = countWithSize("↑ ${summary.sentCount}", summary.sentSize, R.color.chucker_color_primary)
+            receivedValue.text =
+                countWithSize("↓ ${summary.receivedCount}", summary.receivedSize, R.color.chucker_status_live)
+            startedText.text = summary.startedAndDeadline
+            if (summary.isExpanded) {
+                detailsButton.setText(R.string.chucker_grpc_hide_details)
+                detailsButton.setIconResource(R.drawable.chucker_ic_arrow_up)
+            } else {
+                detailsButton.setText(R.string.chucker_grpc_details)
+                detailsButton.setIconResource(R.drawable.chucker_ic_arrow_down)
+            }
+        }
+    }
+
+    private fun countWithSize(
+        count: String,
+        size: String,
+        colorRes: Int,
+    ): CharSequence =
+        SpannableStringBuilder()
+            .inSpans(ForegroundColorSpan(ContextCompat.getColor(context, colorRes))) { append(count) }
+            .append(' ')
+            .inSpans(
+                RelativeSizeSpan(SIZE_RELATIVE_TEXT_SIZE),
+                ForegroundColorSpan(binding.startedText.currentTextColor),
+            ) { append(size) }
+
+    private companion object {
+        const val PILL_BACKGROUND_ALPHA = 0x2E
+        const val SIZE_RELATIVE_TEXT_SIZE = 0.65f
+    }
+}
+
+/** Pulses the marker of an open stream, or stops it. */
+private fun ImageView.setPulsing(isPulsing: Boolean) {
+    if (isPulsing) {
+        if (animation == null) startAnimation(GrpcPresentation.pulseAnimation())
+    } else {
+        clearAnimation()
     }
 }

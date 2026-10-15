@@ -4,7 +4,6 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="@dimen/chucker_half_grid"
     android:background="@color/chucker_stream_summary_background"
     android:orientation="vertical">
 
@@ -181,39 +180,6 @@
                 app:iconTint="@color/chucker_color_primary" />
         </LinearLayout>
 
-        <LinearLayout
-            android:id="@+id/detailsContainer"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:visibility="gone"
-            tools:visibility="visible">
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginBottom="@dimen/chucker_base_grid"
-                android:background="@color/chucker_stream_summary_divider" />
-
-            <LinearLayout
-                android:id="@+id/detailRows"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical" />
-
-            <TextView
-                android:id="@+id/errorText"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/chucker_half_grid"
-                android:layout_marginBottom="@dimen/chucker_base_grid"
-                android:textColor="@color/chucker_status_error"
-                android:textIsSelectable="true"
-                android:textSize="13sp"
-                android:visibility="gone"
-                tools:text="io.grpc.StatusRuntimeException: UNAVAILABLE"
-                tools:visibility="visible" />
-        </LinearLayout>
     </LinearLayout>
 
     <View

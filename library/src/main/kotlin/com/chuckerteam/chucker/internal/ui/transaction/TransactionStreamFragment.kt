@@ -22,17 +22,18 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
- * The screen of a streaming gRPC call: the essentials of the call, then everything that happened in
- * order. Metadata, headers and trailers are shown on the events they arrived with.
+ * The screen of a streaming gRPC call: the essentials of the call pinned above a timeline of its
+ * events, newest first. Metadata, headers and trailers are shown on the events they arrived with.
  *
- * While the stream is open the screen updates live, and follows new events as long as the user is
- * at the end of the timeline.
+ * While the stream is open the screen updates live. New events appear at the top, and when the user
+ * has scrolled away from it a button brings them back.
  */
 internal class TransactionStreamFragment : Fragment() {
     private val viewModel: TransactionViewModel by activityViewModels { TransactionViewModelFactory() }
 
     private lateinit var binding: ChuckerFragmentTransactionStreamBinding
     private lateinit var streamAdapter: GrpcStreamAdapter
+    private lateinit var summaryBinder: StreamSummaryBinder
     private lateinit var itemsFactory: GrpcStreamItemsFactory
     private val expandedKeys = mutableSetOf<String>()
 
@@ -61,12 +62,9 @@ internal class TransactionStreamFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         renderedEventCount = -1
         itemsFactory = GrpcStreamItemsFactory(requireContext())
-        streamAdapter =
-            GrpcStreamAdapter(
-                isPulseEnabled = GrpcPresentation.areAnimationsEnabled(requireContext()),
-                onToggle = ::toggle,
-                onOpenMessage = ::openMessage,
-            )
+        val isPulseEnabled = GrpcPresentation.areAnimationsEnabled(requireContext())
+        summaryBinder = StreamSummaryBinder(binding.summary, isPulseEnabled) { toggle(GrpcStreamAdapter.KEY_DETAILS) }
+        streamAdapter = GrpcStreamAdapter(isPulseEnabled, onToggle = ::toggle, onOpenMessage = ::openMessage)
         binding.streamRecyclerView.apply {
             adapter = streamAdapter
             // Rows only change when expanded or collapsed, which looks better without the change animation.
@@ -78,12 +76,12 @@ internal class TransactionStreamFragment : Fragment() {
                         dx: Int,
                         dy: Int,
                     ) {
-                        if (isAtEnd()) binding.newMessagesButton.isVisible = false
+                        if (isAtTop()) binding.newMessagesButton.isVisible = false
                     }
                 },
             )
         }
-        binding.newMessagesButton.setOnClickListener { scrollToEnd() }
+        binding.newMessagesButton.setOnClickListener { scrollToTop() }
 
         viewModel.transaction.combineLatest(viewModel.isLive).observe(viewLifecycleOwner) { (transaction, isLive) ->
             if (transaction != null) render(transaction, isLive)
@@ -134,24 +132,25 @@ internal class TransactionStreamFragment : Fragment() {
         transaction: HttpTransaction,
         isLiveStream: Boolean,
     ) {
-        val events = transaction.getGrpcEvents()
-        val items = itemsFactory.create(transaction, isLiveStream, expandedKeys, System.currentTimeMillis())
+        val eventCount = transaction.getGrpcEvents().size
+        val screen = itemsFactory.create(transaction, isLiveStream, expandedKeys, System.currentTimeMillis())
+        summaryBinder.bind(screen.summary)
 
         val previousEventCount = renderedEventCount
-        val wasAtEnd = isAtEnd()
-        renderedEventCount = events.size
-        streamAdapter.submitList(items) {
-            if (previousEventCount < 0 || events.size <= previousEventCount) return@submitList
-            if (wasAtEnd) scrollToEnd() else binding.newMessagesButton.isVisible = true
+        val wasAtTop = isAtTop()
+        renderedEventCount = eventCount
+        streamAdapter.submitList(screen.items) {
+            if (previousEventCount < 0 || eventCount <= previousEventCount) return@submitList
+            // The list keeps its first visible row in place, so new rows above it need a scroll to be seen.
+            if (wasAtTop) binding.streamRecyclerView.scrollToPosition(0) else binding.newMessagesButton.isVisible = true
         }
     }
 
-    private fun isAtEnd(): Boolean = !binding.streamRecyclerView.canScrollVertically(1)
+    private fun isAtTop(): Boolean = !binding.streamRecyclerView.canScrollVertically(-1)
 
-    private fun scrollToEnd() {
+    private fun scrollToTop() {
         binding.newMessagesButton.isVisible = false
-        val lastPosition = streamAdapter.itemCount - 1
-        if (lastPosition >= 0) binding.streamRecyclerView.smoothScrollToPosition(lastPosition)
+        binding.streamRecyclerView.smoothScrollToPosition(0)
     }
 
     private companion object {

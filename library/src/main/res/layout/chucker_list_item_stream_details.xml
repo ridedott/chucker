@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/chucker_stream_summary_background"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:id="@+id/detailRows"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingHorizontal="@dimen/chucker_doub_grid"
+        android:paddingTop="@dimen/chucker_base_grid" />
+
+    <TextView
+        android:id="@+id/errorText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="@dimen/chucker_doub_grid"
+        android:paddingTop="@dimen/chucker_half_grid"
+        android:textColor="@color/chucker_status_error"
+        android:textIsSelectable="true"
+        android:textSize="13sp"
+        android:visibility="gone"
+        tools:text="io.grpc.StatusRuntimeException: UNAVAILABLE"
+        tools:visibility="visible" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="@dimen/chucker_base_grid"
+        android:background="@color/chucker_stream_summary_divider" />
+</LinearLayout>

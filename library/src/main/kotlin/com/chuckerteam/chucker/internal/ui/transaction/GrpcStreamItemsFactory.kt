@@ -9,14 +9,25 @@ import com.chuckerteam.chucker.internal.data.entity.HttpTransaction
 import com.chuckerteam.chucker.internal.support.GrpcStatusCodes
 import java.net.HttpURLConnection.HTTP_INTERNAL_ERROR
 import java.text.DateFormat
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
- * Turns a streaming gRPC call into the rows of its screen: a summary of the call, then every event
- * in the order it happened.
+ * Turns a streaming gRPC call into its screen: a summary of the call, and a timeline of its events,
+ * newest first.
  */
 internal class GrpcStreamItemsFactory(
     private val context: Context,
 ) {
+    // Events can be milliseconds apart, so their time is shown with milliseconds.
+    private val eventTimeFormat =
+        SimpleDateFormat(
+            android.text.format.DateFormat
+                .getBestDateTimePattern(Locale.getDefault(), "jmmssSSS"),
+            Locale.getDefault(),
+        )
+
     /**
      * @param isLiveStream whether the stream is still open in this process.
      * @param expandedKeys the keys of the rows the user expanded.
@@ -27,24 +38,29 @@ internal class GrpcStreamItemsFactory(
         isLiveStream: Boolean,
         expandedKeys: Set<String>,
         nowMs: Long,
-    ): List<StreamItem> {
+    ): StreamScreen {
         // A stream with a status is over, even if its recorder hasn't let go of it yet.
         val isLive = isLiveStream && transaction.responseCode == null
         val statusColor = statusColor(transaction, isLive)
-        return buildList {
-            add(StreamItem.Summary(summary(transaction, isLive, statusColor, expandedKeys, nowMs)))
-            transaction.getGrpcEvents().forEachIndexed { position, event ->
-                add(StreamItem.Event(eventRow(position, event, transaction, statusColor, expandedKeys)))
+        val isExpanded = GrpcStreamAdapter.KEY_DETAILS in expandedKeys
+        val items =
+            buildList {
+                if (isExpanded) add(StreamItem.Details(details(transaction), transaction.error))
+                // No time here: the summary shows how long the stream has been open.
+                if (isLive) add(StreamItem.Waiting)
+                val events = transaction.getGrpcEvents()
+                for (position in events.indices.reversed()) {
+                    add(StreamItem.Event(eventRow(position, events[position], transaction, statusColor, expandedKeys)))
+                }
             }
-            if (isLive) add(StreamItem.Waiting(GrpcPresentation.formatOffset(elapsedMs(transaction, nowMs))))
-        }
+        return StreamScreen(summary(transaction, isLive, statusColor, isExpanded, nowMs), items)
     }
 
     private fun summary(
         transaction: HttpTransaction,
         isLive: Boolean,
         @ColorInt statusColor: Int,
-        expandedKeys: Set<String>,
+        isExpanded: Boolean,
         nowMs: Long,
     ): StreamSummary {
         val code = transaction.responseCode
@@ -56,7 +72,7 @@ internal class GrpcStreamItemsFactory(
             }
         val duration =
             when {
-                isLive -> GrpcPresentation.formatOffset(elapsedMs(transaction, nowMs))
+                isLive -> GrpcPresentation.formatElapsed(elapsedMs(transaction, nowMs))
                 else -> transaction.tookMs?.let(GrpcPresentation::formatOffset) ?: NO_VALUE
             }
         val durationLabel = if (isLive) R.string.chucker_grpc_open_for else R.string.chucker_duration
@@ -81,9 +97,7 @@ internal class GrpcStreamItemsFactory(
             receivedCount = transaction.responseMessageCount,
             receivedSize = GrpcPresentation.formatSize(transaction.responsePayloadSize),
             startedAndDeadline = listOfNotNull(started, deadline).joinToString(" · "),
-            isExpanded = GrpcStreamAdapter.KEY_DETAILS in expandedKeys,
-            details = details(transaction),
-            error = transaction.error,
+            isExpanded = isExpanded,
         )
     }
 
@@ -114,6 +128,7 @@ internal class GrpcStreamItemsFactory(
                 position = position,
                 event = event,
                 title = "",
+                timestamp = eventTime(transaction, event),
                 titleColor = null,
                 icon = R.drawable.chucker_ic_stream_event,
                 iconColor = neutral,
@@ -226,6 +241,14 @@ internal class GrpcStreamItemsFactory(
                 else -> R.color.chucker_status_400
             }
         return color(colorRes)
+    }
+
+    private fun eventTime(
+        transaction: HttpTransaction,
+        event: GrpcEvent,
+    ): String {
+        val startedAt = transaction.requestDate ?: return ""
+        return eventTimeFormat.format(Date(startedAt + event.timeOffsetMs))
     }
 
     private fun countOrNull(

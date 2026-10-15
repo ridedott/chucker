@@ -13,6 +13,8 @@ import java.util.Locale
 internal object GrpcPresentation {
     private const val UNARY = "UNARY"
     private const val MILLIS_PER_SECOND = 1000.0
+    private const val SECONDS_PER_MINUTE = 60
+    private const val SECONDS_PER_HOUR = 3_600
     private const val PULSE_DURATION_MS = 800L
     private const val PULSE_MIN_ALPHA = 0.25f
 
@@ -43,6 +45,16 @@ internal object GrpcPresentation {
         } else {
             String.format(Locale.US, "%.1f s", millis / MILLIS_PER_SECOND)
         }
+
+    /** Formats how long an open stream has run, in whole seconds so it doesn't flicker as it ticks. */
+    fun formatElapsed(millis: Long): String {
+        val seconds = millis / MILLIS_PER_SECOND.toLong()
+        return when {
+            seconds < SECONDS_PER_MINUTE -> "$seconds s"
+            seconds < SECONDS_PER_HOUR -> "${seconds / SECONDS_PER_MINUTE} min ${seconds % SECONDS_PER_MINUTE} s"
+            else -> "${seconds / SECONDS_PER_HOUR} h ${seconds / SECONDS_PER_MINUTE % SECONDS_PER_MINUTE} min"
+        }
+    }
 
     fun formatSize(bytes: Long?): String = FormatUtils.formatByteCount(bytes ?: 0, true)
 
