@@ -4,7 +4,7 @@ import com.chuckerteam.chucker.internal.data.entity.HttpTransaction
 import com.chuckerteam.chucker.internal.data.har.log.entry.request.PostData
 import com.chuckerteam.chucker.internal.data.har.log.entry.request.QueryString
 import com.google.gson.annotations.SerializedName
-import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
 // https://github.com/ahmadnassri/har-spec/blob/master/versions/1.2.md#request
 // http://www.softwareishard.com/blog/har-12-spec/#request
@@ -24,12 +24,15 @@ internal data class Request(
     constructor(transaction: HttpTransaction) : this(
         method = transaction.method ?: "",
         url = transaction.url ?: "",
-        httpVersion = transaction.protocol ?: "",
+        httpVersion = transaction.harHttpVersion(),
         headers = transaction.getParsedRequestHeaders()?.map { Header(it) } ?: emptyList(),
-        queryString = transaction.url?.let { QueryString.fromUrl(it.toHttpUrl()) } ?: emptyList(),
+        queryString = transaction.url?.toHttpUrlOrNull()?.let { QueryString.fromUrl(it) } ?: emptyList(),
         postData = transaction.requestPayloadSize?.run { PostData(transaction) },
         headersSize = transaction.requestHeadersSize ?: 0,
         bodySize = transaction.requestPayloadSize ?: 0,
         totalSize = transaction.getRequestTotalSize(),
     )
 }
+
+// gRPC runs over HTTP/2, the protocol column holds "gRPC" to tell the calls apart.
+internal fun HttpTransaction.harHttpVersion(): String = if (isGrpc) "HTTP/2" else protocol ?: ""

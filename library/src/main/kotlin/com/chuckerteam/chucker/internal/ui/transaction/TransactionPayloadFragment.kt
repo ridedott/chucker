@@ -31,9 +31,11 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.withResumed
 import com.chuckerteam.chucker.R
 import com.chuckerteam.chucker.databinding.ChuckerFragmentTransactionPayloadBinding
+import com.chuckerteam.chucker.internal.data.entity.GrpcEvent
 import com.chuckerteam.chucker.internal.data.entity.HttpTransaction
 import com.chuckerteam.chucker.internal.support.FileSaver
 import com.chuckerteam.chucker.internal.support.Logger
+import com.chuckerteam.chucker.internal.support.SpanTextUtil
 import com.chuckerteam.chucker.internal.support.calculateLuminance
 import com.chuckerteam.chucker.internal.support.combineLatest
 import com.chuckerteam.chucker.internal.support.spannableChunked
@@ -53,6 +55,11 @@ internal class TransactionPayloadFragment :
 
     private val payloadType: PayloadType by lazy(LazyThreadSafetyMode.NONE) {
         arguments?.getSerializable(ARG_TYPE) as PayloadType
+    }
+
+    /** The position of the single gRPC message to show, or `null` to show the whole request or response. */
+    private val grpcMessagePosition: Int? by lazy(LazyThreadSafetyMode.NONE) {
+        arguments?.getInt(ARG_MESSAGE_POSITION, NO_MESSAGE)?.takeIf { it != NO_MESSAGE }
     }
 
     private val saveToFile =
@@ -183,6 +190,17 @@ internal class TransactionPayloadFragment :
     }
 
     private fun copyRawPayload(transaction: HttpTransaction) {
+        if (transaction.isGrpc) {
+            val isRequest = payloadType == PayloadType.REQUEST
+            val text = grpcBodyText(transaction, pretty = false)
+            if (text.isEmpty()) return
+            if (isRequest) {
+                copyToClipboard(text, getString(R.string.chucker_request), getString(R.string.chucker_request_copied))
+            } else {
+                copyToClipboard(text, getString(R.string.chucker_response), getString(R.string.chucker_response_copied))
+            }
+            return
+        }
         when (payloadType) {
             PayloadType.REQUEST ->
                 transaction.requestBody?.let { request ->
@@ -207,9 +225,10 @@ internal class TransactionPayloadFragment :
         lifecycleScope.launch {
             val formatted =
                 withContext(Dispatchers.Default) {
-                    when (payloadType) {
-                        PayloadType.REQUEST -> transaction.getFormattedRequestBody()
-                        PayloadType.RESPONSE -> transaction.getFormattedResponseBody()
+                    when {
+                        transaction.isGrpc -> grpcBodyText(transaction, pretty = true)
+                        payloadType == PayloadType.REQUEST -> transaction.getFormattedRequestBody()
+                        else -> transaction.getFormattedResponseBody()
                     }
                 }
 
@@ -449,6 +468,7 @@ internal class TransactionPayloadFragment :
         transaction: HttpTransaction,
         formatRequestBody: Boolean,
     ): MutableList<TransactionPayloadItem> {
+        if (transaction.isGrpc) return processGrpcPayload(type, transaction)
         return withContext(Dispatchers.Default) {
             val result = mutableListOf<TransactionPayloadItem>()
 
@@ -522,7 +542,131 @@ internal class TransactionPayloadFragment :
         }
     }
 
+    private suspend fun processGrpcPayload(
+        type: PayloadType,
+        transaction: HttpTransaction,
+    ): MutableList<TransactionPayloadItem> =
+        withContext(Dispatchers.Default) {
+            val context = requireContext()
+            val isRequest = type == PayloadType.REQUEST
+            val result = mutableListOf<TransactionPayloadItem>()
+
+            if (grpcMessagePosition != null) {
+                val message = selectedGrpcMessage(transaction) ?: return@withContext result
+                result += TransactionPayloadItem.CopyItem(getString(R.string.chucker_copy_response))
+                result += grpcMessageItems(message, SpanTextUtil(context), withHeader = false)
+                return@withContext result
+            }
+
+            val headers =
+                if (isRequest) transaction.getRequestHeadersString(true) else transaction.getResponseHeadersString(true)
+            if (headers.isNotBlank()) {
+                val spanned = HtmlCompat.fromHtml(headers, HtmlCompat.FROM_HTML_MODE_LEGACY)
+                result += TransactionPayloadItem.HeaderItem(spanned)
+            }
+
+            val messages = transaction.getGrpcMessages(isRequest)
+            if (messages.isEmpty()) {
+                val emptyText =
+                    when {
+                        isRequest -> R.string.chucker_grpc_no_messages_sent
+                        else -> R.string.chucker_grpc_no_messages_received
+                    }
+                result += TransactionPayloadItem.LabelItem(getString(emptyText))
+            } else {
+                result += TransactionPayloadItem.CopyItem(getString(R.string.chucker_copy_response))
+                val spanTextUtil = SpanTextUtil(context)
+                for (message in messages) {
+                    result += grpcMessageItems(message, spanTextUtil)
+                }
+                val messageCount = if (isRequest) transaction.requestMessageCount else transaction.responseMessageCount
+                if (messageCount > messages.size) {
+                    result +=
+                        TransactionPayloadItem.LabelItem(
+                            getString(R.string.chucker_grpc_messages_not_recorded, messageCount - messages.size),
+                        )
+                }
+            }
+
+            if (!isRequest) result += grpcStatusItems(transaction)
+            result
+        }
+
+    private fun grpcMessageItems(
+        message: GrpcEvent,
+        spanTextUtil: SpanTextUtil,
+        withHeader: Boolean = true,
+    ): List<TransactionPayloadItem> {
+        val header =
+            getString(
+                R.string.chucker_grpc_message_header,
+                message.index ?: 0,
+                GrpcPresentation.formatOffset(message.timeOffsetMs),
+                GrpcPresentation.formatSize(message.size),
+            )
+        val body: CharSequence =
+            when {
+                message.body == null -> getString(R.string.chucker_grpc_message_omitted)
+                message.format?.isJson == true -> spanTextUtil.spanJson(message.body)
+                else -> message.body
+            }
+        val lines = body.lines().map { TransactionPayloadItem.BodyLineItem(SpannableStringBuilder.valueOf(it)) }
+        val truncated =
+            if (message.isTruncated) {
+                val text = getString(R.string.chucker_body_content_truncated).trim()
+                listOf(TransactionPayloadItem.BodyLineItem(SpannableStringBuilder.valueOf(text)))
+            } else {
+                emptyList()
+            }
+        val headerItems = if (withHeader) listOf(TransactionPayloadItem.LabelItem(header)) else emptyList()
+        return headerItems + lines + truncated
+    }
+
+    private fun selectedGrpcMessage(transaction: HttpTransaction): GrpcEvent? {
+        val position = grpcMessagePosition ?: return null
+        return transaction.getGrpcEvents().getOrNull(position)?.takeIf { it.isMessage }
+    }
+
+    /** The recorded gRPC messages shown on this screen, as a single text for copying and saving. */
+    private fun grpcBodyText(
+        transaction: HttpTransaction,
+        pretty: Boolean,
+    ): String {
+        if (grpcMessagePosition == null) {
+            return transaction.getGrpcBodyText(isRequest = payloadType == PayloadType.REQUEST, pretty = pretty)
+        }
+        val message = selectedGrpcMessage(transaction) ?: return ""
+        return transaction.getGrpcMessageText(message, pretty)
+    }
+
+    private fun grpcStatusItems(transaction: HttpTransaction): List<TransactionPayloadItem> {
+        val result = mutableListOf<TransactionPayloadItem>()
+        val trailers = transaction.getResponseTrailersString(true)
+        if (trailers.isNotBlank()) {
+            result += TransactionPayloadItem.LabelItem(getString(R.string.chucker_grpc_trailers))
+            result += TransactionPayloadItem.HeaderItem(HtmlCompat.fromHtml(trailers, HtmlCompat.FROM_HTML_MODE_LEGACY))
+        }
+        val code = transaction.responseCode ?: return result
+        result += TransactionPayloadItem.LabelItem(getString(R.string.chucker_status))
+        val status =
+            SpannableStringBuilder().apply {
+                bold { append("$code ${transaction.responseMessage}") }
+                transaction.grpcStatusDescription?.let { append(": ").append(it) }
+            }
+        result += TransactionPayloadItem.HeaderItem(status)
+        return result
+    }
+
     private fun prepareDataToSave(
+        type: PayloadType,
+        transaction: HttpTransaction,
+    ): Source =
+        when {
+            transaction.isGrpc -> grpcBodyText(transaction, pretty = true).byteInputStream().source()
+            else -> prepareHttpDataToSave(type, transaction)
+        }
+
+    private fun prepareHttpDataToSave(
         type: PayloadType,
         transaction: HttpTransaction,
     ): Source =
@@ -543,6 +687,8 @@ internal class TransactionPayloadFragment :
         transaction: HttpTransaction,
     ): Boolean =
         when {
+            transaction.isGrpc && grpcMessagePosition != null -> selectedGrpcMessage(transaction)?.body == null
+            transaction.isGrpc -> transaction.getGrpcMessages(isRequest = type == PayloadType.REQUEST).isEmpty()
             type == PayloadType.REQUEST && transaction.requestBody == null -> true
             type == PayloadType.RESPONSE && transaction.responseBody == null -> true
             else -> false
@@ -550,6 +696,8 @@ internal class TransactionPayloadFragment :
 
     companion object {
         private const val ARG_TYPE = "type"
+        private const val ARG_MESSAGE_POSITION = "message_position"
+        private const val NO_MESSAGE = -1
         private const val TRANSACTION_EXCEPTION = "Transaction not ready"
         private const val DELAY_FOR_SEARCH_SCROLL: Long = 600L
 
@@ -563,6 +711,19 @@ internal class TransactionPayloadFragment :
                 arguments =
                     Bundle().apply {
                         putSerializable(ARG_TYPE, type)
+                    }
+            }
+
+        /** Shows only the gRPC message at [eventPosition] in the call's events. */
+        fun newMessageInstance(
+            type: PayloadType,
+            eventPosition: Int,
+        ): TransactionPayloadFragment =
+            TransactionPayloadFragment().apply {
+                arguments =
+                    Bundle().apply {
+                        putSerializable(ARG_TYPE, type)
+                        putInt(ARG_MESSAGE_POSITION, eventPosition)
                     }
             }
     }

@@ -97,6 +97,11 @@ dependencies {
 
     implementation(libs.apollo.runtime)
 
+    implementation(libs.grpc.okhttp)
+    implementation(libs.grpc.stub)
+    implementation(libs.grpc.protobuf.lite)
+    implementation(libs.protobuf.javalite)
+
     implementation(libs.cronet.okhttp)
     implementation(libs.play.services.cronet)
     implementation(libs.kotlinx.coroutines.play.services)

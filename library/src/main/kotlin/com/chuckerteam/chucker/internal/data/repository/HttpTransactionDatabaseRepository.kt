@@ -1,6 +1,7 @@
 package com.chuckerteam.chucker.internal.data.repository
 
 import androidx.lifecycle.LiveData
+import androidx.lifecycle.map
 import com.chuckerteam.chucker.internal.data.entity.HttpTransaction
 import com.chuckerteam.chucker.internal.data.entity.HttpTransactionTuple
 import com.chuckerteam.chucker.internal.data.room.ChuckerDatabase
@@ -33,6 +34,9 @@ internal class HttpTransactionDatabaseRepository(
             .distinctUntilChanged { old, new -> old?.hasTheSameContent(new) != false }
 
     override fun getSortedTransactionTuples(): LiveData<List<HttpTransactionTuple>> = transactionDao.getSortedTuples()
+
+    override fun getExistingTransactionIds(ids: Set<Long>): LiveData<Set<Long>> =
+        transactionDao.getExistingIds(ids).map { it.toSet() }.distinctUntilChanged()
 
     override suspend fun deleteAllTransactions() {
         transactionDao.deleteAll()

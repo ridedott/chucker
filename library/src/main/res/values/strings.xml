@@ -81,4 +81,57 @@
     <string name="chucker_copy_formatted">Copy Formatted</string>
     <string name="chucker_request_copied_formatted">Formatted Request Copied</string>
     <string name="chucker_response_copied_formatted">Formatted Response Copied</string>
+    <string name="chucker_grpc" translatable="false">gRPC</string>
+    <string name="chucker_grpc_unary">Unary</string>
+    <string name="chucker_grpc_client_streaming">Client streaming</string>
+    <string name="chucker_grpc_server_streaming">Server streaming</string>
+    <string name="chucker_grpc_bidi_streaming">Bidirectional streaming</string>
+    <string name="chucker_grpc_unknown_call_type">Unknown</string>
+    <string name="chucker_grpc_message_counts" translatable="false">↑%1$d ↓%2$d</string>
+    <string name="chucker_grpc_call_type">Call type</string>
+    <string name="chucker_grpc_status_description">Description</string>
+    <string name="chucker_grpc_messages">Messages</string>
+    <string name="chucker_grpc_messages_value">Sent: %1$d, received: %2$d</string>
+    <string name="chucker_grpc_deadline">Deadline</string>
+    <string name="chucker_grpc_no_deadline">None</string>
+    <string name="chucker_error">Error</string>
+    <string name="chucker_grpc_time_offset" translatable="false">+%1$s</string>
+    <string name="chucker_grpc_message_header" translatable="false">#%1$d · +%2$s · %3$s</string>
+    <string name="chucker_grpc_message_omitted">Not recorded, the content limit was reached</string>
+    <string name="chucker_grpc_messages_not_recorded">Messages not recorded: %1$d</string>
+    <string name="chucker_grpc_no_messages_sent">No messages sent</string>
+    <string name="chucker_grpc_no_messages_received">No messages received</string>
+    <string name="chucker_grpc_trailers">Trailers</string>
+    <string name="chucker_grpc_event_started">Call started</string>
+    <string name="chucker_grpc_event_message_sent">Sent #%1$d · %2$s</string>
+    <string name="chucker_grpc_event_half_closed">Client finished sending</string>
+    <string name="chucker_grpc_event_headers_received">Headers received</string>
+    <string name="chucker_grpc_event_message_received">Received #%1$d · %2$s</string>
+    <string name="chucker_grpc_event_cancelled">Cancelled by the client</string>
+    <string name="chucker_grpc_event_closed">Closed</string>
+    <string name="chucker_share_as_grpcurl">Share as grpcurl command</string>
+    <string name="chucker_grpcurl_incomplete_body">Some request messages couldn\'t be converted to JSON and were left out.</string>
+    <string name="chucker_live">LIVE</string>
+    <string name="chucker_active_streams_filter">Active streams (%1$d)</string>
+    <string name="chucker_active_streams_footer">Streams leave this list when they close.</string>
+    <string name="chucker_grpc_open_for">Open for</string>
+    <string name="chucker_grpc_sent">Sent</string>
+    <string name="chucker_grpc_received">Received</string>
+    <string name="chucker_grpc_started_at">Started %1$s</string>
+    <string name="chucker_grpc_deadline_value">Deadline %1$s</string>
+    <string name="chucker_grpc_no_deadline_summary">No deadline</string>
+    <string name="chucker_grpc_details">Details</string>
+    <string name="chucker_grpc_hide_details">Hide details</string>
+    <string name="chucker_grpc_no_status">No status</string>
+    <string name="chucker_grpc_metadata_count">Metadata: %1$d</string>
+    <string name="chucker_grpc_headers_count">Headers: %1$d</string>
+    <string name="chucker_grpc_waiting">Stream open, waiting for messages</string>
+    <string name="chucker_grpc_lines_shown">Lines shown: %1$d of %2$d</string>
+    <string name="chucker_grpc_message_partial">Only the start of the message is shown</string>
+    <string name="chucker_grpc_message_truncated">Cut off at the content limit</string>
+    <string name="chucker_grpc_open_full_message">Open full message</string>
+    <string name="chucker_grpc_new_messages">New messages</string>
+    <string name="chucker_grpc_message_sent_title">Sent #%1$d</string>
+    <string name="chucker_grpc_message_received_title">Received #%1$d</string>
+    <string name="chucker_grpc_message_subtitle" translatable="false">%1$s · +%2$s</string>
 </resources>

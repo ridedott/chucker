@@ -25,8 +25,15 @@ internal data class HttpTransactionTuple(
     @ColumnInfo(name = "error") var error: String?,
     @ColumnInfo(name = "graphQlDetected") var graphQlDetected: Boolean = false,
     @ColumnInfo(name = "graphQlOperationName") var graphQlOperationName: String?,
+    @ColumnInfo(name = "isGrpc") var isGrpc: Boolean = false,
+    @ColumnInfo(name = "grpcMethodType") var grpcMethodType: String? = null,
+    @ColumnInfo(name = "requestMessageCount") var requestMessageCount: Int = 0,
+    @ColumnInfo(name = "responseMessageCount") var responseMessageCount: Int = 0,
 ) {
     val isSsl: Boolean get() = scheme.equals("https", ignoreCase = true)
+
+    /** Whether this is a gRPC call that streams messages in at least one direction. */
+    val isGrpcStream: Boolean get() = isGrpc && grpcMethodType != "UNARY"
 
     val status: HttpTransaction.Status
         get() =
@@ -49,6 +56,7 @@ internal data class HttpTransactionTuple(
 
     fun getFormattedPath(encode: Boolean): String {
         val path = this.path ?: return ""
+        if (isGrpc) return path
 
         // Create dummy URL since there is no data in this class to get it from
         // and we are only interested in a formatted path with query.

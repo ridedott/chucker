@@ -6,6 +6,8 @@ import android.view.Menu
 import android.view.MenuInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Observer
@@ -62,14 +64,17 @@ internal class TransactionOverviewFragment : Fragment() {
         transaction: HttpTransaction?,
         encodeUrl: Boolean,
     ) {
+        val isGrpc = transaction?.isGrpc == true
         with(overviewBinding) {
             url.text = transaction?.getFormattedUrl(encodeUrl)
             hostIp.text = transaction?.hostIp
-            method.text = transaction?.method
+            method.text = if (isGrpc) transaction.grpcFullMethodName else transaction?.method
             protocol.text = transaction?.protocol
             status.text = transaction?.status.toString()
             response.text = transaction?.responseSummaryText
-            when (transaction?.isSsl) {
+            populateGrpcRows(transaction?.takeIf { isGrpc })
+            // gRPC calls only learn whether they use TLS once connected.
+            when (transaction?.isSsl.takeUnless { isGrpc && transaction.scheme == null }) {
                 null -> {
                     sslGroup.visibility = View.GONE
                 }
@@ -97,5 +102,41 @@ internal class TransactionOverviewFragment : Fragment() {
             responseSize.text = transaction?.responseSizeString
             totalSize.text = transaction?.totalSizeString
         }
+    }
+
+    private fun populateGrpcRows(transaction: HttpTransaction?) {
+        with(overviewBinding) {
+            showRow(
+                grpcCallTypeLabel,
+                grpcCallType,
+                transaction?.let { getString(GrpcPresentation.callTypeLabel(it.grpcMethodType)) },
+            )
+            showRow(grpcDescriptionLabel, grpcDescription, transaction?.grpcStatusDescription)
+            showRow(
+                grpcMessagesLabel,
+                grpcMessages,
+                transaction?.let {
+                    getString(R.string.chucker_grpc_messages_value, it.requestMessageCount, it.responseMessageCount)
+                },
+            )
+            showRow(
+                grpcDeadlineLabel,
+                grpcDeadline,
+                transaction?.let {
+                    it.grpcDeadlineMs?.let { ms -> "$ms ms" } ?: getString(R.string.chucker_grpc_no_deadline)
+                },
+            )
+            showRow(errorLabel, errorValue, transaction?.error)
+        }
+    }
+
+    private fun showRow(
+        label: TextView,
+        value: TextView,
+        text: String?,
+    ) {
+        label.isVisible = text != null
+        value.isVisible = text != null
+        value.text = text
     }
 }

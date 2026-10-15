@@ -26,6 +26,9 @@ internal interface HttpTransactionRepository {
         path: String,
     ): LiveData<List<HttpTransactionTuple>>
 
+    /** Emits which of [ids] still belong to a transaction, as transactions can be deleted at any time. */
+    fun getExistingTransactionIds(ids: Set<Long>): LiveData<Set<Long>>
+
     fun getTransaction(transactionId: Long): LiveData<HttpTransaction?>
 
     suspend fun getAllTransactions(): List<HttpTransaction>

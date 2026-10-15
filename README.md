@@ -75,6 +75,7 @@ Don't forget to check the [changelog](CHANGELOG.md) to have a look at all the ch
 * Support for body text search with **highlighting** 🕵️‍♂️
 * Support for showing **images** in HTTP Responses 🖼
 * Support for custom decoding of HTTP bodies
+* Support for inspecting **gRPC** calls, including streams 🛰
 
 ### Multi-Window 🚪
 
@@ -154,6 +155,41 @@ object ProtoDecoder : BodyDecoder {
 }
 interceptorBuilder.addBodyDecoder(ProtoDecoder).build()
 ```
+
+### gRPC 🛰
+
+Chucker can also record calls made with [gRPC Java](https://github.com/grpc/grpc-java), next to your HTTP traffic. Add `ChuckerGrpcInterceptor` to your channel:
+
+```kotlin
+val channel = OkHttpChannelBuilder.forTarget(target)
+    .intercept(
+        ChuckerGrpcInterceptor.Builder(context)
+            .redactHeaders("authorization")
+            .build()
+    )
+    .build()
+```
+
+Nothing else needs to be added: the interceptor ships in the `library` and `library-no-op` artifacts, and only needs `io.grpc:grpc-api`, which your app already has when it uses gRPC.
+
+All call types are supported: unary, client streaming, server streaming and bidirectional streaming. Each call is recorded as one transaction, with its metadata, trailers, status, deadline, and every message sent and received with its timing. While streams are open they are marked as live in the list, and an **Active streams** filter shows only them. A streaming call opens on its own screen: a summary of the call, then everything that happened in order, updating live. Metadata, headers and trailers are shown on the events they arrived with, and long messages can be opened in full. Calls can be shared as text, as a `.har` file, or as a [grpcurl](https://github.com/fullstorydev/grpcurl) command.
+
+Messages are shown as JSON, using their generated classes:
+* `protobuf-javalite` and `protobuf-java` messages, including the well-known types such as `Timestamp` or `Struct`.
+* [Wire](https://github.com/square/wire) messages.
+* Other messages are decoded from the wire without a schema, with their field numbers as keys. Fields that your generated classes don't know, for example when the server is newer than the app, are shown the same way, as `"#<field number>"`.
+
+You can customise how messages are shown, or support other message types, with a `GrpcMessageFormatter`:
+
+```kotlin
+ChuckerGrpcInterceptor.Builder(context)
+    .addMessageFormatter { fullMethodName, message ->
+        (message as? MyMessage)?.let(myJsonPrinter::print)
+    }
+    .build()
+```
+
+Methods can be left out with `skipMethods("package.Service/Method")`, `skipMethods(Regex)` or `skipServices("package.Service")`.
 
 ### Notification Permission 🔔
 

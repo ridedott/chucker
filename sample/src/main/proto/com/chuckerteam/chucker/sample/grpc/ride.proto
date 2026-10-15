@@ -1,0 +1,84 @@
+syntax = "proto3";
+
+// Messages of the sample gRPC services. The services themselves are declared in
+// SampleGrpcServices.kt, so that the sample needs no gRPC code generation.
+package chucker.sample.ride.v1;
+
+option java_package = "com.chuckerteam.chucker.sample.grpc";
+
+enum RideState {
+  RIDE_STATE_UNSPECIFIED = 0;
+  RIDE_STATE_RESERVED = 1;
+  RIDE_STATE_STARTED = 2;
+  RIDE_STATE_PAUSED = 3;
+  RIDE_STATE_ENDED = 4;
+}
+
+message Location {
+  double latitude = 1;
+  double longitude = 2;
+  float accuracy_meters = 3;
+}
+
+message Card {
+  string brand = 1;
+  string last_four = 2;
+}
+
+message GetRideRequest {
+  string ride_id = 1;
+  bool include_route = 2;
+}
+
+message Ride {
+  string id = 1;
+  RideState state = 2;
+  Location location = 3;
+  repeated Location route = 4;
+  map<string, string> tags = 5;
+  int64 started_at_epoch_millis = 6;
+  double fare = 7;
+  bytes receipt_signature = 8;
+  optional string promo_code = 9;
+  oneof payment {
+    Card card = 10;
+    string wallet_id = 11;
+  }
+  uint32 battery_percent = 12;
+}
+
+// What a newer server sends: the client doesn't know the last two fields, which Chucker
+// shows as unknown fields.
+message RideV2 {
+  string id = 1;
+  RideState state = 2;
+  Location location = 3;
+  repeated Location route = 4;
+  map<string, string> tags = 5;
+  int64 started_at_epoch_millis = 6;
+  double fare = 7;
+  bytes receipt_signature = 8;
+  optional string promo_code = 9;
+  oneof payment {
+    Card card = 10;
+    string wallet_id = 11;
+  }
+  uint32 battery_percent = 12;
+  string vehicle_name = 20;
+  int64 vehicle_id = 21;
+}
+
+message WatchRideRequest {
+  string ride_id = 1;
+  int32 update_count = 2;
+}
+
+message RouteSummary {
+  int32 point_count = 1;
+  double distance_meters = 2;
+}
+
+message ChatMessage {
+  string author = 1;
+  string text = 2;
+}

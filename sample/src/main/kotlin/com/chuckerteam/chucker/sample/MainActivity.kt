@@ -22,6 +22,7 @@ import com.chuckerteam.chucker.api.ChuckerCollector
 import com.chuckerteam.chucker.api.ExportFormat
 import com.chuckerteam.chucker.sample.compose.ChuckerSampleMainScreen
 import com.chuckerteam.chucker.sample.compose.theme.ChuckerTheme
+import com.chuckerteam.chucker.sample.grpc.GrpcTask
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -41,6 +42,8 @@ class MainActivity : ComponentActivity() {
             CronetHttpTask(applicationContext, client),
         )
     }
+
+    private val grpcTask by lazy { GrpcTask(applicationContext) }
 
     @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -65,6 +68,9 @@ class MainActivity : ComponentActivity() {
                     },
                     onDoGraphQL = {
                         GraphQlTask(client).run()
+                    },
+                    onDoGrpc = {
+                        grpcTask.run(lifecycleScope)
                     },
                     onLaunchChucker = {
                         launchChuckerDirectly()

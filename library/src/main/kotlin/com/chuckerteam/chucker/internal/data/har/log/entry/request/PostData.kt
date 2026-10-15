@@ -15,6 +15,11 @@ internal data class PostData(
 ) {
     constructor(transaction: HttpTransaction) : this(
         mimeType = transaction.requestContentType ?: "application/octet-stream",
-        text = transaction.requestBody,
+        text =
+            if (transaction.isGrpc) {
+                transaction.getGrpcBodyText(isRequest = true, pretty = false)
+            } else {
+                transaction.requestBody
+            },
     )
 }

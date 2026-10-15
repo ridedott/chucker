@@ -21,6 +21,25 @@ public final class com/chuckerteam/chucker/api/ChuckerCollector {
 	public static synthetic fun writeTransactions$default (Lcom/chuckerteam/chucker/api/ChuckerCollector;Landroid/content/Context;Ljava/lang/Long;Lcom/chuckerteam/chucker/api/ExportFormat;ILjava/lang/Object;)Landroid/net/Uri;
 }
 
+public final class com/chuckerteam/chucker/api/ChuckerGrpcInterceptor : io/grpc/ClientInterceptor {
+	public fun <init> (Landroid/content/Context;)V
+	public synthetic fun <init> (Lcom/chuckerteam/chucker/api/ChuckerGrpcInterceptor$Builder;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun interceptCall (Lio/grpc/MethodDescriptor;Lio/grpc/CallOptions;Lio/grpc/Channel;)Lio/grpc/ClientCall;
+}
+
+public final class com/chuckerteam/chucker/api/ChuckerGrpcInterceptor$Builder {
+	public fun <init> (Landroid/content/Context;)V
+	public final fun addMessageFormatter (Lcom/chuckerteam/chucker/api/GrpcMessageFormatter;)Lcom/chuckerteam/chucker/api/ChuckerGrpcInterceptor$Builder;
+	public final fun build ()Lcom/chuckerteam/chucker/api/ChuckerGrpcInterceptor;
+	public final fun collector (Lcom/chuckerteam/chucker/api/ChuckerCollector;)Lcom/chuckerteam/chucker/api/ChuckerGrpcInterceptor$Builder;
+	public final fun maxContentLength (J)Lcom/chuckerteam/chucker/api/ChuckerGrpcInterceptor$Builder;
+	public final fun redactHeaders (Ljava/lang/Iterable;)Lcom/chuckerteam/chucker/api/ChuckerGrpcInterceptor$Builder;
+	public final fun redactHeaders ([Ljava/lang/String;)Lcom/chuckerteam/chucker/api/ChuckerGrpcInterceptor$Builder;
+	public final fun skipMethods (Lkotlin/text/Regex;)Lcom/chuckerteam/chucker/api/ChuckerGrpcInterceptor$Builder;
+	public final fun skipMethods ([Ljava/lang/String;)Lcom/chuckerteam/chucker/api/ChuckerGrpcInterceptor$Builder;
+	public final fun skipServices ([Ljava/lang/String;)Lcom/chuckerteam/chucker/api/ChuckerGrpcInterceptor$Builder;
+}
+
 public final class com/chuckerteam/chucker/api/ChuckerInterceptor : okhttp3/Interceptor {
 	public fun <init> (Landroid/content/Context;)V
 	public synthetic fun <init> (Lcom/chuckerteam/chucker/api/ChuckerInterceptor$Builder;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
@@ -51,6 +70,10 @@ public final class com/chuckerteam/chucker/api/ExportFormat : java/lang/Enum {
 	public final fun getExtension ()Ljava/lang/String;
 	public static fun valueOf (Ljava/lang/String;)Lcom/chuckerteam/chucker/api/ExportFormat;
 	public static fun values ()[Lcom/chuckerteam/chucker/api/ExportFormat;
+}
+
+public abstract interface class com/chuckerteam/chucker/api/GrpcMessageFormatter {
+	public abstract fun format (Ljava/lang/String;Ljava/lang/Object;)Ljava/lang/String;
 }
 
 public final class com/chuckerteam/chucker/api/RetentionManager {

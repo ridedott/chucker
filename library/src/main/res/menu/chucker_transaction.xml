@@ -28,6 +28,10 @@
                     android:id="@+id/share_curl"
                     android:title="@string/chucker_share_as_curl" />
                 <item
+                    android:id="@+id/share_grpcurl"
+                    android:title="@string/chucker_share_as_grpcurl"
+                    android:visible="false" />
+                <item
                     android:id="@+id/share_file"
                     android:title="@string/chucker_share_as_file" />
                 <item

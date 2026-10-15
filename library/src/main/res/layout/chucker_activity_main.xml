@@ -27,6 +27,32 @@
 
     </com.google.android.material.appbar.AppBarLayout>
 
+    <FrameLayout
+        android:id="@+id/activeStreamsBar"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="@dimen/chucker_base_grid"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/appBarLayout"
+        tools:visibility="visible">
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/activeStreamsChip"
+            style="@style/Widget.MaterialComponents.Chip.Filter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/chucker_active_streams_chip_text"
+            app:checkedIconTint="@color/chucker_color_primary"
+            app:chipBackgroundColor="@color/chucker_active_streams_chip_background"
+            app:chipIcon="@drawable/chucker_live_dot"
+            app:chipIconSize="8dp"
+            app:chipIconVisible="true"
+            app:iconStartPadding="@dimen/chucker_half_grid"
+            tools:text="Active streams (2)" />
+    </FrameLayout>
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/transactionsRecyclerView"
         android:layout_width="match_parent"
@@ -36,7 +62,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/appBarLayout"
+        app:layout_constraintTop_toBottomOf="@id/activeStreamsBar"
         tools:listitem="@layout/chucker_list_item_transaction"
         tools:visibility="gone" />
 

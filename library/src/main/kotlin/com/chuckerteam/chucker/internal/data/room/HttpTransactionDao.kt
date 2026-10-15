@@ -9,27 +9,30 @@ import androidx.room.Update
 import com.chuckerteam.chucker.internal.data.entity.HttpTransaction
 import com.chuckerteam.chucker.internal.data.entity.HttpTransactionTuple
 
+private const val TUPLE_COLUMNS =
+    "id, requestDate, tookMs, protocol, method, host, path, scheme, responseCode, " +
+        "requestPayloadSize, responsePayloadSize, error, graphQLDetected, graphQlOperationName, " +
+        "isGrpc, grpcMethodType, requestMessageCount, responseMessageCount"
+
 @Suppress("TooManyFunctions")
 @Dao
 internal interface HttpTransactionDao {
-    @Query(
-        "SELECT id, requestDate, tookMs, protocol, method, host, path, scheme, responseCode, " +
-            "requestPayloadSize, responsePayloadSize, error, graphQLDetected, graphQlOperationName FROM " +
-            "transactions ORDER BY requestDate DESC",
-    )
+    @Query("SELECT $TUPLE_COLUMNS FROM transactions ORDER BY requestDate DESC")
     fun getSortedTuples(): LiveData<List<HttpTransactionTuple>>
 
     @Query(
-        "SELECT id, requestDate, tookMs, protocol, method, host, path, scheme, responseCode, " +
-            "requestPayloadSize, responsePayloadSize, error, graphQLDetected, graphQlOperationName FROM " +
-            "transactions WHERE responseCode LIKE :codeQuery AND (path LIKE :pathQuery OR " +
-            "graphQlOperationName LIKE :graphQlQuery) ORDER BY requestDate DESC",
+        "SELECT $TUPLE_COLUMNS FROM transactions WHERE responseCode LIKE :codeQuery AND " +
+            "(path LIKE :pathQuery OR graphQlOperationName LIKE :graphQlQuery OR " +
+            "(isGrpc = 1 AND responseMessage LIKE :pathQuery)) ORDER BY requestDate DESC",
     )
     fun getFilteredTuples(
         codeQuery: String,
         pathQuery: String,
         graphQlQuery: String = "",
     ): LiveData<List<HttpTransactionTuple>>
+
+    @Query("SELECT id FROM transactions WHERE id IN (:ids)")
+    fun getExistingIds(ids: Collection<Long>): LiveData<List<Long>>
 
     @Insert
     suspend fun insert(transaction: HttpTransaction): Long?

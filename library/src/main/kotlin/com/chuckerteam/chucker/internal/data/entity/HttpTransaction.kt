@@ -63,7 +63,20 @@ internal class HttpTransaction(
     @ColumnInfo(name = "responseImageData") var responseImageData: ByteArray?,
     @ColumnInfo(name = "graphQlDetected") var graphQlDetected: Boolean = false,
     @ColumnInfo(name = "graphQlOperationName") var graphQlOperationName: String?,
+    @ColumnInfo(name = "isGrpc") var isGrpc: Boolean = false,
+    @ColumnInfo(name = "grpcMethodType") var grpcMethodType: String? = null,
+    @ColumnInfo(name = "grpcStatusDescription") var grpcStatusDescription: String? = null,
+    @ColumnInfo(name = "grpcDeadlineMs") var grpcDeadlineMs: Long? = null,
+    @ColumnInfo(name = "responseTrailers") var responseTrailers: String? = null,
+    @ColumnInfo(name = "requestMessageCount") var requestMessageCount: Int = 0,
+    @ColumnInfo(name = "responseMessageCount") var responseMessageCount: Int = 0,
+    @ColumnInfo(name = "grpcEvents") var grpcEvents: String? = null,
 ) {
+    // Parsing the events is expensive, so the last result is kept together with its source.
+    @Ignore
+    @Volatile
+    private var grpcEventsCache: Pair<String, List<GrpcEvent>>? = null
+
     @Ignore
     constructor() : this(
         requestDate = null,
@@ -133,6 +146,8 @@ internal class HttpTransaction(
 
     val responseSummaryText: String?
         get() {
+            // A failed gRPC call still has a status, its error is shown separately.
+            if (isGrpc && responseCode != null) return "$responseCode $responseMessage"
             return when (status) {
                 Status.Failed -> error
                 Status.Requested -> null
@@ -142,12 +157,17 @@ internal class HttpTransaction(
 
     val notificationText: String
         get() {
+            val target = if (isGrpc) grpcFullMethodName else "$method $path"
             return when (status) {
-                Status.Failed -> " ! ! !  $method $path"
-                Status.Requested -> " . . .  $method $path"
-                else -> "$responseCode $method $path"
+                Status.Failed -> " ! ! !  $target"
+                Status.Requested -> " . . .  $target"
+                else -> if (isGrpc) "$responseMessage $target" else "$responseCode $target"
             }
         }
+
+    /** The full gRPC method name, e.g. `ride.v1.RideService/WatchRide`. */
+    val grpcFullMethodName: String
+        get() = path?.removePrefix("/").orEmpty()
 
     val isSsl: Boolean
         get() = scheme.equals("https", ignoreCase = true)
@@ -206,6 +226,74 @@ internal class HttpTransaction(
             withMarkup = withMarkup,
         )
 
+    fun setResponseTrailers(trailers: List<HttpHeader>) {
+        responseTrailers = HttpHeaderSerializer.toJson(trailers)
+    }
+
+    fun getParsedResponseTrailers(): List<HttpHeader>? =
+        JsonConverter.instance.fromJson<List<HttpHeader>>(
+            responseTrailers,
+            TypeToken.getParameterized(List::class.java, HttpHeader::class.java).type,
+        )
+
+    fun getResponseTrailersString(withMarkup: Boolean): String =
+        FormatUtils.formatHeaders(
+            httpHeaders = getParsedResponseTrailers(),
+            withMarkup = withMarkup,
+        )
+
+    /** Returns the recorded events of a gRPC call, oldest first. */
+    fun getGrpcEvents(): List<GrpcEvent> {
+        val source = grpcEvents ?: return emptyList()
+        val cached = grpcEventsCache
+        if (cached != null && cached.first === source) return cached.second
+        val type = TypeToken.getParameterized(List::class.java, GrpcEvent::class.java).type
+        val events =
+            runCatching { JsonConverter.instance.fromJson<List<GrpcEvent>>(source, type) }
+                .getOrNull()
+                .orEmpty()
+        grpcEventsCache = source to events
+        return events
+    }
+
+    fun getGrpcMessages(isRequest: Boolean): List<GrpcEvent> {
+        val type = if (isRequest) GrpcEvent.Type.MESSAGE_SENT else GrpcEvent.Type.MESSAGE_RECEIVED
+        return getGrpcEvents().filter { it.type == type }
+    }
+
+    /**
+     * Returns all the recorded messages of one direction of a gRPC call as a single text, used
+     * when copying, saving or sharing. A call with a single message returns just that message.
+     */
+    fun getGrpcBodyText(
+        isRequest: Boolean,
+        pretty: Boolean,
+    ): String {
+        val messages = getGrpcMessages(isRequest)
+        val totalCount = if (isRequest) requestMessageCount else responseMessageCount
+        if (messages.size == 1 && totalCount == 1) return messages.single().bodyText(pretty)
+        return messages.joinToString(separator = "\n\n") { message ->
+            val size = formatBytes(message.size ?: 0)
+            "// #${message.index} +${message.timeOffsetMs} ms, $size\n${message.bodyText(pretty)}"
+        }
+    }
+
+    /** Returns the text of one recorded gRPC message, used when copying or saving it. */
+    fun getGrpcMessageText(
+        message: GrpcEvent,
+        pretty: Boolean,
+    ): String = message.bodyText(pretty)
+
+    private fun GrpcEvent.bodyText(pretty: Boolean): String {
+        val text =
+            when {
+                body == null -> GRPC_BODY_OMITTED
+                pretty && format?.isJson == true && !isTruncated -> FormatUtils.formatJson(body)
+                else -> body
+            }
+        return if (isTruncated) "$text\n$GRPC_BODY_TRUNCATED" else text
+    }
+
     private fun toHttpHeaderList(headers: Headers): List<HttpHeader> {
         val httpHeaders = ArrayList<HttpHeader>()
         for (i in 0 until headers.size) {
@@ -251,13 +339,23 @@ internal class HttpTransaction(
 
     private fun formatBytes(bytes: Long): String = FormatUtils.formatByteCount(bytes, true)
 
-    fun getFormattedRequestBody(): String = requestBody?.let { formatBody(it, requestContentType) } ?: ""
+    fun getFormattedRequestBody(): String =
+        if (isGrpc) {
+            getGrpcBodyText(isRequest = true, pretty = true)
+        } else {
+            requestBody?.let { formatBody(it, requestContentType) } ?: ""
+        }
 
     fun getSpannedRequestBody(context: Context?): CharSequence =
         requestBody?.let { spanBody(it, requestContentType, context) }
             ?: SpannableStringBuilder.valueOf("")
 
-    fun getFormattedResponseBody(): String = responseBody?.let { formatBody(it, responseContentType) } ?: ""
+    fun getFormattedResponseBody(): String =
+        if (isGrpc) {
+            getGrpcBodyText(isRequest = false, pretty = true)
+        } else {
+            responseBody?.let { formatBody(it, responseContentType) } ?: ""
+        }
 
     fun getSpannedResponseBody(context: Context?): CharSequence =
         responseBody?.let {
@@ -274,11 +372,14 @@ internal class HttpTransaction(
     }
 
     fun getFormattedUrl(encode: Boolean): String {
+        // gRPC URLs have no query to encode, and may use a scheme OkHttp can't parse.
+        if (isGrpc) return url.orEmpty()
         val httpUrl = url?.toHttpUrl() ?: return ""
         return FormattedUrl.fromHttpUrl(httpUrl, encode).url
     }
 
     fun getFormattedPath(encode: Boolean): String {
+        if (isGrpc) return path.orEmpty()
         val httpUrl = url?.toHttpUrl() ?: return ""
         return FormattedUrl.fromHttpUrl(httpUrl, encode).pathWithQuery
     }
@@ -331,6 +432,63 @@ internal class HttpTransaction(
             (isResponseBodyEncoded == other.isResponseBodyEncoded) &&
             (responseImageData?.contentEquals(other.responseImageData ?: byteArrayOf()) != false) &&
             (graphQlOperationName == other.graphQlOperationName) &&
-            (graphQlDetected == other.graphQlDetected)
+            (graphQlDetected == other.graphQlDetected) &&
+            (isGrpc == other.isGrpc) &&
+            (grpcMethodType == other.grpcMethodType) &&
+            (grpcStatusDescription == other.grpcStatusDescription) &&
+            (grpcDeadlineMs == other.grpcDeadlineMs) &&
+            (responseTrailers == other.responseTrailers) &&
+            (requestMessageCount == other.requestMessageCount) &&
+            (responseMessageCount == other.responseMessageCount) &&
+            (grpcEvents == other.grpcEvents)
+    }
+
+    /** Returns a copy of this transaction that can be handed to another thread. */
+    fun snapshot(): HttpTransaction =
+        HttpTransaction(
+            id = id,
+            requestDate = requestDate,
+            responseDate = responseDate,
+            tookMs = tookMs,
+            protocol = protocol,
+            method = method,
+            url = url,
+            hostIp = hostIp,
+            host = host,
+            path = path,
+            scheme = scheme,
+            responseTlsVersion = responseTlsVersion,
+            responseCipherSuite = responseCipherSuite,
+            requestPayloadSize = requestPayloadSize,
+            requestContentType = requestContentType,
+            requestHeaders = requestHeaders,
+            requestHeadersSize = requestHeadersSize,
+            requestBody = requestBody,
+            isRequestBodyEncoded = isRequestBodyEncoded,
+            responseCode = responseCode,
+            responseMessage = responseMessage,
+            error = error,
+            responsePayloadSize = responsePayloadSize,
+            responseContentType = responseContentType,
+            responseHeaders = responseHeaders,
+            responseHeadersSize = responseHeadersSize,
+            responseBody = responseBody,
+            isResponseBodyEncoded = isResponseBodyEncoded,
+            responseImageData = responseImageData,
+            graphQlDetected = graphQlDetected,
+            graphQlOperationName = graphQlOperationName,
+            isGrpc = isGrpc,
+            grpcMethodType = grpcMethodType,
+            grpcStatusDescription = grpcStatusDescription,
+            grpcDeadlineMs = grpcDeadlineMs,
+            responseTrailers = responseTrailers,
+            requestMessageCount = requestMessageCount,
+            responseMessageCount = responseMessageCount,
+            grpcEvents = grpcEvents,
+        )
+
+    private companion object {
+        const val GRPC_BODY_OMITTED = "(not recorded, content limit reached)"
+        const val GRPC_BODY_TRUNCATED = "--- Content truncated ---"
     }
 }

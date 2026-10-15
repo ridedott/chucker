@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.chuckerteam.chucker.internal.ui.transaction.TransactionStreamFragment">
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/streamRecyclerView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:paddingBottom="@dimen/chucker_octa_grid"
+        android:scrollbars="vertical"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+        tools:listitem="@layout/chucker_list_item_stream_event" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/newMessagesButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_margin="@dimen/chucker_doub_grid"
+        android:text="@string/chucker_grpc_new_messages"
+        android:textAllCaps="false"
+        android:visibility="gone"
+        app:cornerRadius="20dp"
+        app:icon="@drawable/chucker_ic_arrow_down"
+        app:iconGravity="textEnd"
+        tools:visibility="visible" />
+</FrameLayout>
