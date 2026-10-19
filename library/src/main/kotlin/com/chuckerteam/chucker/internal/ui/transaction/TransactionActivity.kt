@@ -60,8 +60,11 @@ internal class TransactionActivity : BaseChuckerActivity() {
             Observer { transactionBinding.toolbarTitle.text = it },
         )
         viewModel.transactionSubtitle.observe(this) { subtitle ->
+            val hasSubtitle = !subtitle.isNullOrEmpty()
             transactionBinding.toolbarSubtitle.text = subtitle
-            transactionBinding.toolbarSubtitle.isVisible = !subtitle.isNullOrEmpty()
+            transactionBinding.toolbarSubtitle.isVisible = hasSubtitle
+            // The app bar only fits two lines.
+            transactionBinding.toolbarTitle.maxLines = if (hasSubtitle) 1 else 2
         }
         viewModel.isGrpcStream.observe(this) { isGrpcStream -> if (isGrpcStream) showStream() }
         viewModel.isGrpc.observe(this) { invalidateOptionsMenu() }

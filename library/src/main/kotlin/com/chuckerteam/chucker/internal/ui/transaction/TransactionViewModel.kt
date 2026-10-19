@@ -26,7 +26,7 @@ internal class TransactionViewModel(
             .combineLatest(encodeUrl) { transaction, encodeUrl ->
                 when {
                     transaction == null -> ""
-                    transaction.isGrpc -> GrpcPresentation.shortMethodName(transaction.path)
+                    transaction.isGrpc -> GrpcPresentation.methodName(transaction.path)
                     else -> "${transaction.method} ${transaction.getFormattedPath(encode = encodeUrl)}"
                 }
             }
@@ -71,11 +71,17 @@ internal class TransactionViewModel(
             .map { transactionId in it }
             .distinctUntilChanged()
 
-    /** Where a gRPC call was made to, as its title only names the method. */
+    /**
+     * The service of a gRPC call and where it was made to. The title only names the method, so each
+     * fits on one line of the app bar.
+     */
     val transactionSubtitle: LiveData<String?> =
         transaction
-            .map { transaction -> transaction?.takeIf { it.isGrpc }?.let { GrpcPresentation.authority(it.url) } }
-            .distinctUntilChanged()
+            .map { transaction ->
+                transaction?.takeIf { it.isGrpc }?.let {
+                    "${GrpcPresentation.serviceName(it.path)} · ${GrpcPresentation.authority(it.url)}"
+                }
+            }.distinctUntilChanged()
 
     val formatRequestBody: LiveData<Boolean> =
         doesRequestBodyRequireEncoding

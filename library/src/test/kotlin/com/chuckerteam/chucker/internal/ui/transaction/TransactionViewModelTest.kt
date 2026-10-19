@@ -123,14 +123,17 @@ internal class TransactionViewModelTest {
     }
 
     @Test
-    fun `transactionTitle shows the service and method of gRPC calls`() {
+    fun `gRPC calls are titled by their method, with the service and host below`() {
         viewModel.transactionTitle.observeForever(transactionTitleObserver)
+        viewModel.transactionSubtitle.observeForever {}
         val txn = mockk<HttpTransaction>()
         every { txn.isGrpc } returns true
         every { txn.path } returns "/ride.v1.RideService/WatchRide"
+        every { txn.url } returns "https://api.example.com:443/ride.v1.RideService/WatchRide"
         transaction.value = txn
 
-        assertEquals("RideService/WatchRide", viewModel.transactionTitle.value)
+        assertEquals("WatchRide", viewModel.transactionTitle.value)
+        assertEquals("RideService · api.example.com:443", viewModel.transactionSubtitle.value)
     }
 
     @Test

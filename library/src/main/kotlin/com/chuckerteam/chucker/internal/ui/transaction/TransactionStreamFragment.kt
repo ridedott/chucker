@@ -82,6 +82,7 @@ internal class TransactionStreamFragment : Fragment() {
             )
         }
         binding.newMessagesButton.setOnClickListener { scrollToTop() }
+        with(binding) { TimelineFastScroller(streamRecyclerView, fastScrollHandle, fastScrollLabel, ::timelineLabel) }
 
         viewModel.transaction.combineLatest(viewModel.isLive).observe(viewLifecycleOwner) { (transaction, isLive) ->
             if (transaction != null) render(transaction, isLive)
@@ -144,6 +145,13 @@ internal class TransactionStreamFragment : Fragment() {
             // The list keeps its first visible row in place, so new rows above it need a scroll to be seen.
             if (wasAtTop) binding.streamRecyclerView.scrollToPosition(0) else binding.newMessagesButton.isVisible = true
         }
+    }
+
+    /** Names a row while the timeline is dragged through, e.g. `+1.1 s · Received #3 · 26 B`. */
+    private fun timelineLabel(position: Int): String? {
+        val row = (streamAdapter.currentList.getOrNull(position) as? StreamItem.Event)?.row ?: return null
+        val offset = getString(R.string.chucker_grpc_time_offset, GrpcPresentation.formatOffset(row.event.timeOffsetMs))
+        return "$offset · ${row.title}"
     }
 
     private fun isAtTop(): Boolean = !binding.streamRecyclerView.canScrollVertically(-1)

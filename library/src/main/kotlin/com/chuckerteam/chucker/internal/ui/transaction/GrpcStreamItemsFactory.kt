@@ -262,7 +262,10 @@ internal class GrpcStreamItemsFactory(
     private fun elapsedMs(
         transaction: HttpTransaction,
         nowMs: Long,
-    ): Long = (nowMs - (transaction.requestDate ?: return 0)).coerceAtLeast(0)
+    ): Long {
+        val startedAt = transaction.requestDate ?: return 0
+        return (nowMs - startedAt).coerceAtLeast(0)
+    }
 
     private companion object {
         const val NO_VALUE = "—"

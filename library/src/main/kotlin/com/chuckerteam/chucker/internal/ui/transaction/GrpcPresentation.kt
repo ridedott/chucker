@@ -30,13 +30,16 @@ internal object GrpcPresentation {
 
     fun isStreaming(methodType: String?): Boolean = methodType != UNARY
 
-    /** Shortens `/ride.v1.RideService/WatchRide` to `RideService/WatchRide`. */
-    fun shortMethodName(path: String?): String {
-        val fullMethodName = path.orEmpty().removePrefix("/")
-        val service = fullMethodName.substringBefore('/')
-        val method = fullMethodName.substringAfter('/', missingDelimiterValue = "")
-        return "${service.substringAfterLast('.')}/$method"
-    }
+    /** Returns `RideService` for `/ride.v1.RideService/WatchRide`. */
+    fun serviceName(path: String?): String =
+        path
+            .orEmpty()
+            .removePrefix("/")
+            .substringBefore('/')
+            .substringAfterLast('.')
+
+    /** Returns `WatchRide` for `/ride.v1.RideService/WatchRide`. */
+    fun methodName(path: String?): String = path.orEmpty().substringAfterLast('/')
 
     /** Formats a time offset within a call, e.g. `31 ms` or `1.2 s`. */
     fun formatOffset(millis: Long): String =

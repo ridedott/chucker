@@ -202,7 +202,8 @@ internal class TransactionAdapter internal constructor(
                 displayGrpcFields(transaction)
                 path.text =
                     if (transaction.isGrpc) {
-                        GrpcPresentation.shortMethodName(transaction.path)
+                        val grpcPath = transaction.path
+                        "${GrpcPresentation.serviceName(grpcPath)}/${GrpcPresentation.methodName(grpcPath)}"
                     } else {
                         "${transaction.method} ${transaction.getFormattedPath(encode = false)}"
                     }
