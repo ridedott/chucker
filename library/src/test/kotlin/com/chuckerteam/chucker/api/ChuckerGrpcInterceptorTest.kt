@@ -6,6 +6,7 @@ import com.chuckerteam.chucker.internal.data.entity.GrpcEvent.BodyFormat
 import com.chuckerteam.chucker.internal.data.entity.HttpHeader
 import com.chuckerteam.chucker.internal.data.entity.HttpTransaction
 import com.chuckerteam.chucker.internal.grpc.GrpcActiveStreams
+import com.chuckerteam.chucker.internal.grpc.GrpcCallRecorder
 import com.chuckerteam.chucker.internal.grpc.GrpcTransactionSink
 import com.chuckerteam.chucker.util.NoLoggerRule
 import com.google.common.truth.Truth.assertThat
@@ -149,6 +150,42 @@ internal class ChuckerGrpcInterceptorTest {
         val transaction = sink.awaitClosedCall()
         assertThat(transaction.requestMessageCount).isEqualTo(STREAM_SIZE)
         assertThat(transaction.getGrpcMessages(isRequest = false).single().body).isEqualTo("3")
+    }
+
+    @Test
+    fun `a long stream keeps counting messages past the ones it records`() {
+        val done = CountDownLatch(1)
+        val requests =
+            ClientCalls.asyncClientStreamingCall(
+                channel().newCall(clientStream, CallOptions.DEFAULT),
+                latchObserver<Int32Value>(done),
+            )
+        val messageCount = GrpcCallRecorder.MAX_RECORDED_MESSAGES + 5
+        repeat(messageCount) { requests.onNext(StringValue.of("item-$it")) }
+        requests.onCompleted()
+        done.await(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+
+        val transaction = sink.awaitClosedCall()
+        assertThat(transaction.requestMessageCount).isEqualTo(messageCount)
+        assertThat(transaction.responseMessageCount).isEqualTo(1)
+        assertThat(transaction.getGrpcEvents().count { it.isMessage }).isEqualTo(GrpcCallRecorder.MAX_RECORDED_MESSAGES)
+    }
+
+    @Test
+    fun `only the update that closes a stream is final`() {
+        val done = CountDownLatch(1)
+        val requests =
+            ClientCalls.asyncBidiStreamingCall(
+                channel().newCall(bidiStream, CallOptions.DEFAULT),
+                latchObserver<StringValue>(done),
+            )
+        awaitCondition { sink.inserted.isNotEmpty() }
+        requests.onNext(StringValue.of("ping"))
+        requests.onCompleted()
+        done.await(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+
+        sink.awaitClosedCall()
+        assertThat(sink.finalUpdates.map { it.responseCode }).containsExactly(Status.Code.OK.value())
     }
 
     @Test
@@ -418,6 +455,7 @@ internal class ChuckerGrpcInterceptorTest {
         private val nextId = AtomicLong(1)
         private val closedCalls = LinkedBlockingQueue<HttpTransaction>()
         val inserted = CopyOnWriteArrayList<HttpTransaction>()
+        val finalUpdates = CopyOnWriteArrayList<HttpTransaction>()
 
         override suspend fun insert(transaction: HttpTransaction): Long {
             inserted += transaction
@@ -425,8 +463,12 @@ internal class ChuckerGrpcInterceptorTest {
             return nextId.getAndIncrement()
         }
 
-        override suspend fun update(transaction: HttpTransaction) {
+        override suspend fun update(
+            transaction: HttpTransaction,
+            isFinal: Boolean,
+        ) {
             if (transaction.responseCode != null) closedCalls += transaction
+            if (isFinal) finalUpdates += transaction
         }
 
         fun awaitClosedCall(): HttpTransaction =
@@ -436,7 +478,10 @@ internal class ChuckerGrpcInterceptorTest {
     private object FailingSink : GrpcTransactionSink {
         override suspend fun insert(transaction: HttpTransaction): Long = error("Database failure")
 
-        override suspend fun update(transaction: HttpTransaction) = error("Database failure")
+        override suspend fun update(
+            transaction: HttpTransaction,
+            isFinal: Boolean,
+        ) = error("Database failure")
     }
 
     private companion object {

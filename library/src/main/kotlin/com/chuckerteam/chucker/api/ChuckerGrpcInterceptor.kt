@@ -23,6 +23,7 @@ import io.grpc.KnownLength
 import io.grpc.Metadata
 import io.grpc.MethodDescriptor
 import io.grpc.Status
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -64,7 +65,13 @@ public class ChuckerGrpcInterceptor private constructor(
     private val skipMethods = builder.skipMethods.toSet()
     private val skipMethodsRegex = builder.skipMethodsRegex.toSet()
     private val skipServices = builder.skipServices.toSet()
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    // Recording must never crash the app, whatever goes wrong while a call is saved.
+    private val scope =
+        CoroutineScope(
+            SupervisorJob() + Dispatchers.IO +
+                CoroutineExceptionHandler { _, e -> Logger.error("Failed to record a gRPC call", e) },
+        )
 
     override fun <ReqT, RespT> interceptCall(
         method: MethodDescriptor<ReqT, RespT>,
@@ -241,12 +248,19 @@ public class ChuckerGrpcInterceptor private constructor(
         @Suppress("UNCHECKED_CAST")
         private fun stream(message: Any): InputStream = marshaller.stream(message as T)
 
-        override fun size(message: Any): Long =
-            stream(message).use { stream ->
+        // A message that is itself a stream, as with pass-through marshallers, is the stream the
+        // transport reads, so reading it here would take its bytes.
+        override fun size(message: Any): Long? {
+            if (message is InputStream) return null
+            return stream(message).use { stream ->
                 if (stream is KnownLength) stream.available().toLong() else stream.countBytes()
             }
+        }
 
-        override fun serialize(message: Any): ByteArray = stream(message).use { it.readBytes() }
+        override fun serialize(message: Any): ByteArray? {
+            if (message is InputStream) return null
+            return stream(message).use { it.readBytes() }
+        }
 
         private fun InputStream.countBytes(): Long {
             val buffer = ByteArray(BUFFER_SIZE)

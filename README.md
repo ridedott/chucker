@@ -170,6 +170,8 @@ val channel = OkHttpChannelBuilder.forTarget(target)
     .build()
 ```
 
+gRPC runs interceptors in the reverse order they are added, so add `ChuckerGrpcInterceptor` before your other interceptors: it then runs last, and records the metadata they add, such as an `authorization` header.
+
 Nothing else needs to be added: the interceptor ships in the `library` and `library-no-op` artifacts, and only needs `io.grpc:grpc-api`, which your app already has when it uses gRPC.
 
 All call types are supported: unary, client streaming, server streaming and bidirectional streaming. Each call is recorded as one transaction, with its metadata, trailers, status, deadline, and every message sent and received with its timing. While streams are open they are marked as live in the list, and an **Active streams** filter shows only them. A streaming call opens on its own screen: a summary of the call, then everything that happened in order, updating live. Metadata, headers and trailers are shown on the events they arrived with, and long messages can be opened in full. Calls can be shared as text or as a `.har` file.

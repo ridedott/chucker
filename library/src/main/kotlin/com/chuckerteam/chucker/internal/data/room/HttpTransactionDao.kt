@@ -46,8 +46,11 @@ internal interface HttpTransactionDao {
     @Query("SELECT * FROM transactions WHERE id = :id")
     fun getById(id: Long): LiveData<HttpTransaction?>
 
-    @Query("DELETE FROM transactions WHERE requestDate <= :threshold")
-    suspend fun deleteBefore(threshold: Long): Int
+    @Query("DELETE FROM transactions WHERE requestDate <= :threshold AND id NOT IN (:keepIds)")
+    suspend fun deleteBefore(
+        threshold: Long,
+        keepIds: Collection<Long>,
+    ): Int
 
     @Query("SELECT * FROM transactions")
     suspend fun getAll(): List<HttpTransaction>

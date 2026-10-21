@@ -26,6 +26,7 @@ import androidx.core.text.bold
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.LiveData
 import androidx.lifecycle.Observer
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.withResumed
@@ -38,6 +39,7 @@ import com.chuckerteam.chucker.internal.support.Logger
 import com.chuckerteam.chucker.internal.support.SpanTextUtil
 import com.chuckerteam.chucker.internal.support.calculateLuminance
 import com.chuckerteam.chucker.internal.support.combineLatest
+import com.chuckerteam.chucker.internal.support.distinctUntilChanged
 import com.chuckerteam.chucker.internal.support.spannableChunked
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -135,7 +137,7 @@ internal class TransactionPayloadFragment :
             adapter = payloadAdapter
         }
 
-        viewModel.transaction.combineLatest(viewModel.formatRequestBody).observe(
+        shownTransaction().combineLatest(viewModel.formatRequestBody).observe(
             viewLifecycleOwner,
             Observer { (transaction, formatRequestBody) ->
                 if (transaction == null) return@Observer
@@ -622,9 +624,12 @@ internal class TransactionPayloadFragment :
         return headerItems + lines + truncated
     }
 
+    private fun shownTransaction(): LiveData<HttpTransaction?> =
+        grpcMessagePosition?.let(viewModel.transaction::followingGrpcMessage) ?: viewModel.transaction
+
     private fun selectedGrpcMessage(transaction: HttpTransaction): GrpcEvent? {
         val position = grpcMessagePosition ?: return null
-        return transaction.getGrpcEvents().getOrNull(position)?.takeIf { it.isMessage }
+        return transaction.grpcMessageAt(position)
     }
 
     /** The recorded gRPC messages shown on this screen, as a single text for copying and saving. */
@@ -752,3 +757,17 @@ internal class TransactionPayloadFragment :
         return result
     }
 }
+
+private fun HttpTransaction.grpcMessageAt(position: Int): GrpcEvent? {
+    val event = getGrpcEvents().getOrNull(position)
+    return event?.takeIf { it.isMessage }
+}
+
+/**
+ * A live stream updates its transaction several times a second, but a recorded message never
+ * changes, so the screen of a single message only follows the transaction until the message is there.
+ */
+private fun LiveData<HttpTransaction?>.followingGrpcMessage(position: Int): LiveData<HttpTransaction?> =
+    distinctUntilChanged { old, new ->
+        old != null && new != null && old.grpcMessageAt(position) == new.grpcMessageAt(position)
+    }

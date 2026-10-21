@@ -146,7 +146,7 @@ internal class HttpTransactionDaoTest {
             insertTransaction(newer)
             assertRowCount(2)
 
-            testObject.deleteBefore(150L)
+            testObject.deleteBefore(150L, keepIds = emptyList())
 
             assertRowCount(1)
             assertRowCountMatchingId(older.id, 0)
@@ -162,7 +162,7 @@ internal class HttpTransactionDaoTest {
             insertTransaction(newer)
             assertRowCount(2)
 
-            testObject.deleteBefore(100L)
+            testObject.deleteBefore(100L, keepIds = emptyList())
 
             assertRowCount(1)
             assertRowCountMatchingId(older.id, 0)

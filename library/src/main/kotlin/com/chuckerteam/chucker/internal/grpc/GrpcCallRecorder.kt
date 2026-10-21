@@ -24,7 +24,8 @@ import java.util.concurrent.TimeUnit
  * The `on*` methods may be called from any thread: they only queue what happened. A single
  * coroutine applies the queued inputs to the transaction, renders the messages and persists the
  * result, so writes for a call are always ordered and expensive work stays off the call's threads.
- * While the call is active, writes are throttled to one every [WRITE_INTERVAL_MS].
+ * While the call is active, writes are throttled to one every [WRITE_INTERVAL_MS], or every
+ * [CAPPED_WRITE_INTERVAL_MS] once a long stream stops recording messages and only counts them.
  */
 @Suppress("LongParameterList", "TooManyFunctions")
 internal class GrpcCallRecorder(
@@ -95,10 +96,10 @@ internal class GrpcCallRecorder(
         var isActive = false
         try {
             signals.consumeEach {
-                applyInputs()
                 try {
+                    applyInputs()
                     if (isInserted) {
-                        sink.update(transaction.snapshot())
+                        sink.update(transaction.snapshot(), isFinal = isClosed)
                     } else {
                         transaction.id = sink.insert(transaction.snapshot())
                         isInserted = true
@@ -114,7 +115,7 @@ internal class GrpcCallRecorder(
                     activeStreams.add(transaction.id)
                     isActive = true
                 }
-                if (!isClosed) delay(WRITE_INTERVAL_MS)
+                if (!isClosed) delay(writeInterval())
             }
         } finally {
             // Only once the final status is saved, so the stream never looks open without a status.
@@ -122,7 +123,13 @@ internal class GrpcCallRecorder(
         }
     }
 
+    private fun writeInterval(): Long {
+        val isRecordingMessages = recordedMessageCount < MAX_RECORDED_MESSAGES
+        return if (isRecordingMessages) WRITE_INTERVAL_MS else CAPPED_WRITE_INTERVAL_MS
+    }
+
     private fun applyInputs() {
+        val eventCount = events.size
         while (true) {
             when (val input = inputs.poll() ?: break) {
                 is Input.Message -> applyMessage(input)
@@ -132,7 +139,8 @@ internal class GrpcCallRecorder(
                 is Input.Close -> applyClose(input)
             }
         }
-        transaction.grpcEvents = JsonConverter.compactInstance.toJson(events)
+        // The events of a long stream are large, so they're only serialized again when they change.
+        if (events.size != eventCount) transaction.grpcEvents = JsonConverter.compactInstance.toJson(events)
     }
 
     private fun applyMessage(input: Input.Message) {
@@ -279,6 +287,7 @@ internal class GrpcCallRecorder(
 
     internal companion object {
         const val WRITE_INTERVAL_MS = 250L
+        const val CAPPED_WRITE_INTERVAL_MS = 2_000L
         const val MAX_RECORDED_MESSAGES = 1_000
         private const val CONTENT_TYPE = "content-type"
         private const val UNARY = "UNARY"

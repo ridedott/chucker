@@ -18,8 +18,11 @@ import com.chuckerteam.chucker.databinding.ChuckerFragmentTransactionStreamBindi
 import com.chuckerteam.chucker.internal.data.entity.GrpcEvent
 import com.chuckerteam.chucker.internal.data.entity.HttpTransaction
 import com.chuckerteam.chucker.internal.support.combineLatest
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * The screen of a streaming gRPC call: the essentials of the call pinned above a timeline of its
@@ -36,6 +39,8 @@ internal class TransactionStreamFragment : Fragment() {
     private lateinit var summaryBinder: StreamSummaryBinder
     private lateinit var itemsFactory: GrpcStreamItemsFactory
     private val expandedKeys = mutableSetOf<String>()
+    private val screenDispatcher = Dispatchers.Default.limitedParallelism(1)
+    private var renderJob: Job? = null
 
     // -1 until the first render, so opening a stream doesn't count its events as new.
     private var renderedEventCount = -1
@@ -129,12 +134,28 @@ internal class TransactionStreamFragment : Fragment() {
         render(transaction, viewModel.isLive.value == true)
     }
 
+    /**
+     * Building the screen parses every event of the stream, which can be large, so it's done off
+     * the main thread, one screen at a time, and only the latest one is shown.
+     */
     private fun render(
         transaction: HttpTransaction,
         isLiveStream: Boolean,
     ) {
-        val eventCount = transaction.getGrpcEvents().size
-        val screen = itemsFactory.create(transaction, isLiveStream, expandedKeys, System.currentTimeMillis())
+        val keys = expandedKeys.toSet()
+        val now = System.currentTimeMillis()
+        renderJob?.cancel()
+        renderJob =
+            viewLifecycleOwner.lifecycleScope.launch {
+                val screen = withContext(screenDispatcher) { itemsFactory.create(transaction, isLiveStream, keys, now) }
+                show(screen, eventCount = transaction.getGrpcEvents().size)
+            }
+    }
+
+    private fun show(
+        screen: StreamScreen,
+        eventCount: Int,
+    ) {
         summaryBinder.bind(screen.summary)
 
         val previousEventCount = renderedEventCount

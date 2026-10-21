@@ -97,13 +97,19 @@ public class ChuckerCollector
 
         /**
          * Stores the latest state of a transaction previously added with [insertTransaction].
+         *
+         * @param notify whether to update the notification. Open streams are saved several times a
+         * second, which is more often than Android lets an app update its notifications.
          */
-        internal suspend fun updateTransaction(transaction: HttpTransaction) {
+        internal suspend fun updateTransaction(
+            transaction: HttpTransaction,
+            notify: Boolean,
+        ) {
             val updated =
                 withContext(Dispatchers.IO) {
                     RepositoryProvider.transaction().updateTransaction(transaction)
                 }
-            if (showNotification && updated > 0) {
+            if (notify && showNotification && updated > 0) {
                 notificationHelper.show(transaction)
             }
         }
