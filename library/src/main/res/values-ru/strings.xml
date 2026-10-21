@@ -104,8 +104,6 @@
     <string name="chucker_grpc_event_message_received">Получено #%1$d · %2$s</string>
     <string name="chucker_grpc_event_cancelled">Отменён клиентом</string>
     <string name="chucker_grpc_event_closed">Закрыт</string>
-    <string name="chucker_share_as_grpcurl">Экспорт командой grpcurl</string>
-    <string name="chucker_grpcurl_incomplete_body">Некоторые сообщения запроса не удалось преобразовать в JSON, они пропущены.</string>
     <string name="chucker_live">LIVE</string>
     <string name="chucker_active_streams_filter">Активные потоки (%1$d)</string>
     <string name="chucker_active_streams_footer">Потоки исчезают из списка после закрытия.</string>

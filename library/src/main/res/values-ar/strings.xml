@@ -104,8 +104,6 @@
     <string name="chucker_grpc_event_message_received">استُلمت #%1$d · %2$s</string>
     <string name="chucker_grpc_event_cancelled">ألغاه العميل</string>
     <string name="chucker_grpc_event_closed">أُغلق</string>
-    <string name="chucker_share_as_grpcurl">مشاركة كأمر grpcurl</string>
-    <string name="chucker_grpcurl_incomplete_body">تعذّر تحويل بعض رسائل الطلب إلى JSON فتم استبعادها.</string>
     <string name="chucker_live">مباشر</string>
     <string name="chucker_active_streams_filter">البث النشط (%1$d)</string>
     <string name="chucker_active_streams_footer">يختفي البث من هذه القائمة عند إغلاقه.</string>

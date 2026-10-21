@@ -104,8 +104,6 @@
     <string name="chucker_grpc_event_message_received">Алынды #%1$d · %2$s</string>
     <string name="chucker_grpc_event_cancelled">Клиент болдырмады</string>
     <string name="chucker_grpc_event_closed">Жабылды</string>
-    <string name="chucker_share_as_grpcurl">grpcurl командасы ретінде бөлісу</string>
-    <string name="chucker_grpcurl_incomplete_body">Сұраудың кейбір хабарламаларын JSON-ға түрлендіру мүмкін болмады, сондықтан олар қалдырылды.</string>
     <string name="chucker_live">ТІКЕЛЕЙ</string>
     <string name="chucker_active_streams_filter">Белсенді ағындар (%1$d)</string>
     <string name="chucker_active_streams_footer">Ағындар жабылғанда бұл тізімнен кетеді.</string>

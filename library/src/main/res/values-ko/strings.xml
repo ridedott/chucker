@@ -104,8 +104,6 @@
     <string name="chucker_grpc_event_message_received">받음 #%1$d · %2$s</string>
     <string name="chucker_grpc_event_cancelled">클라이언트가 취소함</string>
     <string name="chucker_grpc_event_closed">종료됨</string>
-    <string name="chucker_share_as_grpcurl">grpcurl 명령으로 공유</string>
-    <string name="chucker_grpcurl_incomplete_body">일부 요청 메시지를 JSON으로 변환할 수 없어 제외했습니다.</string>
     <string name="chucker_live">라이브</string>
     <string name="chucker_active_streams_filter">활성 스트림 (%1$d)</string>
     <string name="chucker_active_streams_footer">스트림이 종료되면 이 목록에서 사라집니다.</string>

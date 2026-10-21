@@ -15,7 +15,7 @@ internal class RenderedMessage(
 /**
  * Turns a gRPC message into text, trying in order:
  * 1. the formatters supplied by the app;
- * 2. the message's generated class, for Wire and protobuf messages;
+ * 2. the message's generated class, for protobuf messages;
  * 3. the serialized bytes, decoded without a schema;
  * 4. `toString()`.
  */
@@ -59,7 +59,7 @@ internal class GrpcMessageRenderer(
     ): RenderedMessage? {
         val json =
             try {
-                WireMessageReader.read(message) ?: ProtobufMessageReader.read(message)
+                ProtobufMessageReader.read(message)
             } catch (
                 @Suppress("TooGenericExceptionCaught") e: Exception,
             ) {

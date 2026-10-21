@@ -10,13 +10,10 @@ import java.util.TimeZone
 import kotlin.math.abs
 
 /**
- * Helpers shared by the message readers to produce the proto3 JSON representation of values.
+ * Helpers to produce the proto3 JSON representation of values.
  * See https://protobuf.dev/programming-guides/json/.
  */
 internal object ProtoJson {
-    /** Shown instead of the value of fields that Wire marks as `redacted`. */
-    const val REDACTED = "██"
-
     private const val MILLIS_PER_SECOND = 1000L
     private const val NANOS_PER_MILLI = 1_000_000
     private const val NANOS_PER_MICRO = 1_000

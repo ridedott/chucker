@@ -109,8 +109,6 @@
     <string name="chucker_grpc_event_message_received">Received #%1$d · %2$s</string>
     <string name="chucker_grpc_event_cancelled">Cancelled by the client</string>
     <string name="chucker_grpc_event_closed">Closed</string>
-    <string name="chucker_share_as_grpcurl">Share as grpcurl command</string>
-    <string name="chucker_grpcurl_incomplete_body">Some request messages couldn\'t be converted to JSON and were left out.</string>
     <string name="chucker_live">LIVE</string>
     <string name="chucker_active_streams_filter">Active streams (%1$d)</string>
     <string name="chucker_active_streams_footer">Streams leave this list when they close.</string>

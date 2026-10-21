@@ -97,7 +97,6 @@ grpc-okhttp = { group = "io.grpc", name = "grpc-okhttp", version.ref = "grpc" }
 grpc-protobuf-lite = { group = "io.grpc", name = "grpc-protobuf-lite", version.ref = "grpc" }
 grpc-stub = { group = "io.grpc", name = "grpc-stub", version.ref = "grpc" }
 protobuf-javalite = { group = "com.google.protobuf", name = "protobuf-javalite", version.ref = "protobuf" }
-wire-runtime = { group = "com.squareup.wire", name = "wire-runtime", version.ref = "wire" }
 cronet-okhttp = { group = "com.google.net.cronet", name = "cronet-okhttp", version.ref = "cronetOkhttp" }
 play-services-cronet = { group = "com.google.android.gms", name = "play-services-cronet", version.ref = "playServicesCronet" }
 

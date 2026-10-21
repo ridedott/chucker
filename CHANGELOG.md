@@ -9,7 +9,7 @@ Please add your entries according to this format.
 
 -   Long-press the payload copy button to choose between copying the raw body or the formatted body [#1613]
 -   Display the connected peer IP in transaction details when Chucker is used as a network interceptor [#1180]
--   Support for gRPC: `ChuckerGrpcInterceptor` records unary and streaming calls made with gRPC Java, with their metadata, trailers, status and messages. Protobuf and Wire messages are shown as JSON, other messages are decoded without a schema, and `GrpcMessageFormatter` customises the output. Open streams are marked live and can be filtered in the list, streams get their own screen with a live timeline, and calls can be shared as `grpcurl` commands
+-   Support for gRPC: `ChuckerGrpcInterceptor` records unary and streaming calls made with gRPC Java, with their metadata, trailers, status and messages. Protobuf messages are shown as JSON, other messages are decoded without a schema, and `GrpcMessageFormatter` customises the output. Open streams are marked live and can be filtered in the list, and streams get their own screen with a live timeline
 
 ### Fixed
 

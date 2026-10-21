@@ -104,8 +104,6 @@
     <string name="chucker_grpc_event_message_received">Recibido #%1$d · %2$s</string>
     <string name="chucker_grpc_event_cancelled">Cancelada por el cliente</string>
     <string name="chucker_grpc_event_closed">Cerrada</string>
-    <string name="chucker_share_as_grpcurl">Compartir como comando grpcurl</string>
-    <string name="chucker_grpcurl_incomplete_body">Algunos mensajes de la solicitud no se pudieron convertir a JSON y se omitieron.</string>
     <string name="chucker_live">EN VIVO</string>
     <string name="chucker_active_streams_filter">Streams activos (%1$d)</string>
     <string name="chucker_active_streams_footer">Los streams salen de esta lista cuando se cierran.</string>

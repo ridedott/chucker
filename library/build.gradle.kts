@@ -111,7 +111,6 @@ dependencies {
     testImplementation(libs.grpc.stub)
     testImplementation(libs.grpc.protobuf.lite)
     testImplementation(libs.protobuf.javalite)
-    testImplementation(libs.wire.runtime)
     testRuntimeOnly(libs.junit.engine)
     testRuntimeOnly(libs.junit.platform.launcher)
     testRuntimeOnly(libs.junit.vintage.engine)

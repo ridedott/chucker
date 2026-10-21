@@ -104,8 +104,6 @@
     <string name="chucker_grpc_event_message_received">موصول ہوا #%1$d · %2$s</string>
     <string name="chucker_grpc_event_cancelled">کلائنٹ نے منسوخ کیا</string>
     <string name="chucker_grpc_event_closed">بند ہو گئی</string>
-    <string name="chucker_share_as_grpcurl">grpcurl کمانڈ کے طور پر شیئر کریں</string>
-    <string name="chucker_grpcurl_incomplete_body">درخواست کے کچھ پیغامات JSON میں تبدیل نہیں ہو سکے اس لیے چھوڑ دیے گئے۔</string>
     <string name="chucker_live">لائیو</string>
     <string name="chucker_active_streams_filter">فعال اسٹریمز (%1$d)</string>
     <string name="chucker_active_streams_footer">اسٹریمز بند ہونے پر اس فہرست سے ہٹ جاتی ہیں۔</string>

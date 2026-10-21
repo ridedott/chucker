@@ -104,8 +104,6 @@
     <string name="chucker_grpc_event_message_received">Qabul qilindi #%1$d · %2$s</string>
     <string name="chucker_grpc_event_cancelled">Mijoz tomonidan bekor qilindi</string>
     <string name="chucker_grpc_event_closed">Yopildi</string>
-    <string name="chucker_share_as_grpcurl">grpcurl buyrug‘i sifatida ulashish</string>
-    <string name="chucker_grpcurl_incomplete_body">So‘rovdagi ba’zi xabarlarni JSON formatiga o‘tkazib bo‘lmadi, shuning uchun ular tushirib qoldirildi.</string>
     <string name="chucker_live">JONLI</string>
     <string name="chucker_active_streams_filter">Faol oqimlar (%1$d)</string>
     <string name="chucker_active_streams_footer">Oqimlar yopilganda bu roʻyxatdan chiqadi.</string>

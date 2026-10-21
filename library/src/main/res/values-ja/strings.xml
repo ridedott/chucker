@@ -104,8 +104,6 @@
     <string name="chucker_grpc_event_message_received">受信 #%1$d · %2$s</string>
     <string name="chucker_grpc_event_cancelled">クライアントによりキャンセル</string>
     <string name="chucker_grpc_event_closed">終了</string>
-    <string name="chucker_share_as_grpcurl">grpcurlコマンドとして共有</string>
-    <string name="chucker_grpcurl_incomplete_body">一部のリクエストメッセージはJSONに変換できなかったため省略されました。</string>
     <string name="chucker_live">ライブ</string>
     <string name="chucker_active_streams_filter">アクティブなストリーム (%1$d)</string>
     <string name="chucker_active_streams_footer">ストリームは終了するとこのリストから消えます。</string>

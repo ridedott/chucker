@@ -103,8 +103,6 @@
     <string name="chucker_grpc_event_message_received">प्राप्त हुआ #%1$d · %2$s</string>
     <string name="chucker_grpc_event_cancelled">क्लाइंट ने रद्द किया</string>
     <string name="chucker_grpc_event_closed">बंद हुई</string>
-    <string name="chucker_share_as_grpcurl">grpcurl कमांड के रूप में साझा करें</string>
-    <string name="chucker_grpcurl_incomplete_body">कुछ अनुरोध संदेश JSON में नहीं बदले जा सके और छोड़ दिए गए।</string>
     <string name="chucker_live">लाइव</string>
     <string name="chucker_active_streams_filter">सक्रिय स्ट्रीम (%1$d)</string>
     <string name="chucker_active_streams_footer">स्ट्रीम बंद होने पर इस सूची से हट जाती हैं।</string>

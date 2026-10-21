@@ -24,7 +24,6 @@ import com.chuckerteam.chucker.internal.support.Sharable
 import com.chuckerteam.chucker.internal.support.TransactionCurlCommandSharable
 import com.chuckerteam.chucker.internal.support.TransactionDetailsHarSharable
 import com.chuckerteam.chucker.internal.support.TransactionDetailsSharable
-import com.chuckerteam.chucker.internal.support.TransactionGrpcurlCommandSharable
 import com.chuckerteam.chucker.internal.support.shareAsFile
 import com.chuckerteam.chucker.internal.support.shareAsUtf8Text
 import com.chuckerteam.chucker.internal.ui.BaseChuckerActivity
@@ -118,10 +117,8 @@ internal class TransactionActivity : BaseChuckerActivity() {
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.chucker_transaction, menu)
         setUpUrlEncoding(menu)
-        // A gRPC call can't be replayed with curl, but it can be with grpcurl.
-        val isGrpc = viewModel.isGrpc.value == true
-        menu.findItem(R.id.share_curl).isVisible = !isGrpc
-        menu.findItem(R.id.share_grpcurl).isVisible = isGrpc
+        // A gRPC call can't be replayed with curl.
+        menu.findItem(R.id.share_curl).isVisible = viewModel.isGrpc.value != true
         return super.onCreateOptionsMenu(menu)
     }
 
@@ -155,10 +152,6 @@ internal class TransactionActivity : BaseChuckerActivity() {
             R.id.share_curl ->
                 shareTransactionAsText { transaction ->
                     TransactionCurlCommandSharable(transaction)
-                }
-            R.id.share_grpcurl ->
-                shareTransactionAsText { transaction ->
-                    TransactionGrpcurlCommandSharable(transaction)
                 }
             R.id.share_file ->
                 shareTransactionAsFile(EXPORT_TXT_FILE_NAME) { transaction ->

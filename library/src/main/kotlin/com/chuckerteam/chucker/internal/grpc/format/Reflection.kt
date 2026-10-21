@@ -5,8 +5,8 @@ import java.lang.reflect.Method
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * Cached reflection helpers. Message classes are only known by name, because protobuf and Wire
- * are optional dependencies that Chucker never links against.
+ * Cached reflection helpers. Message classes are only known by name, because protobuf is an
+ * optional dependency that Chucker never links against.
  */
 internal object Reflection {
     private val subtypes = ConcurrentHashMap<Pair<Class<*>, String>, Boolean>()
