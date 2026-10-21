@@ -758,7 +758,7 @@ internal class TransactionPayloadFragment :
     }
 }
 
-private fun HttpTransaction.grpcMessageAt(position: Int): GrpcEvent? {
+internal fun HttpTransaction.grpcMessageAt(position: Int): GrpcEvent? {
     val event = getGrpcEvents().getOrNull(position)
     return event?.takeIf { it.isMessage }
 }
@@ -767,7 +767,7 @@ private fun HttpTransaction.grpcMessageAt(position: Int): GrpcEvent? {
  * A live stream updates its transaction several times a second, but a recorded message never
  * changes, so the screen of a single message only follows the transaction until the message is there.
  */
-private fun LiveData<HttpTransaction?>.followingGrpcMessage(position: Int): LiveData<HttpTransaction?> =
+internal fun LiveData<HttpTransaction?>.followingGrpcMessage(position: Int): LiveData<HttpTransaction?> =
     distinctUntilChanged { old, new ->
         old != null && new != null && old.grpcMessageAt(position) == new.grpcMessageAt(position)
     }

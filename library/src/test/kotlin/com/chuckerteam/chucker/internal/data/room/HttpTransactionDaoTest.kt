@@ -154,6 +154,20 @@ internal class HttpTransactionDaoTest {
         }
 
     @Test
+    fun `old transactions that are kept are not deleted`() =
+        runBlocking {
+            val openStream = createRequest().apply { requestDate = 100L }
+            val older = createRequest().apply { requestDate = 100L }
+            insertTransaction(openStream)
+            insertTransaction(older)
+
+            testObject.deleteBefore(150L, keepIds = listOf(openStream.id))
+
+            assertRowCountMatchingId(openStream.id, 1)
+            assertRowCountMatchingId(older.id, 0)
+        }
+
+    @Test
     fun `old data threshold is inclusive`() =
         runBlocking {
             val older = createRequest().apply { requestDate = 100L }

@@ -35,8 +35,8 @@ internal class GrpcMessageActivity : BaseChuckerActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
         val position = intent.getIntExtra(EXTRA_EVENT_POSITION, 0)
-        viewModel.transaction.observe(this) { transaction ->
-            val event = transaction?.getGrpcEvents()?.getOrNull(position) ?: return@observe
+        viewModel.transaction.followingGrpcMessage(position).observe(this) { transaction ->
+            val event = transaction?.grpcMessageAt(position) ?: return@observe
             binding.toolbarTitle.text = title(event)
             binding.toolbarSubtitle.text =
                 getString(
