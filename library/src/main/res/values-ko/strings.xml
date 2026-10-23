@@ -118,7 +118,6 @@
     <string name="chucker_grpc_no_status">상태 없음</string>
     <string name="chucker_grpc_metadata_count">메타데이터: %1$d</string>
     <string name="chucker_grpc_headers_count">헤더: %1$d</string>
-    <string name="chucker_grpc_waiting">스트림 열림, 메시지 대기 중</string>
     <string name="chucker_grpc_lines_shown">표시된 줄: %1$d / %2$d</string>
     <string name="chucker_grpc_message_partial">메시지의 앞부분만 표시됩니다</string>
     <string name="chucker_grpc_message_truncated">콘텐츠 한도에서 잘림</string>

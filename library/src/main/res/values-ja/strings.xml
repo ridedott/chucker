@@ -118,7 +118,6 @@
     <string name="chucker_grpc_no_status">ステータスなし</string>
     <string name="chucker_grpc_metadata_count">メタデータ: %1$d</string>
     <string name="chucker_grpc_headers_count">ヘッダー: %1$d</string>
-    <string name="chucker_grpc_waiting">ストリーム接続中、メッセージを待っています</string>
     <string name="chucker_grpc_lines_shown">表示中の行: %1$d / %2$d</string>
     <string name="chucker_grpc_message_partial">メッセージの先頭のみ表示しています</string>
     <string name="chucker_grpc_message_truncated">コンテンツの上限で切り捨てられました</string>

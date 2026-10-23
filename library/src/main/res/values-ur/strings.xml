@@ -118,7 +118,6 @@
     <string name="chucker_grpc_no_status">کوئی اسٹیٹس نہیں</string>
     <string name="chucker_grpc_metadata_count">میٹا ڈیٹا: %1$d</string>
     <string name="chucker_grpc_headers_count">ہیڈرز: %1$d</string>
-    <string name="chucker_grpc_waiting">اسٹریم کھلی ہے، پیغامات کا انتظار ہے</string>
     <string name="chucker_grpc_lines_shown">دکھائی گئی سطریں: %2$d میں سے %1$d</string>
     <string name="chucker_grpc_message_partial">پیغام کا صرف ابتدائی حصہ دکھایا گیا ہے</string>
     <string name="chucker_grpc_message_truncated">مواد کی حد پر کاٹ دیا گیا</string>

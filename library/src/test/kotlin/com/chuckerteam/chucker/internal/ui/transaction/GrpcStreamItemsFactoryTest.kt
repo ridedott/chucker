@@ -57,7 +57,6 @@ internal class GrpcStreamItemsFactoryTest {
         assertThat(summary.isLive).isTrue()
         assertThat(summary.durationLabel).isEqualTo("Open for")
         assertThat(summary.duration).isEqualTo("12 s")
-        assertThat(screen.items.first()).isEqualTo(StreamItem.Waiting)
     }
 
     @Test
@@ -67,7 +66,6 @@ internal class GrpcStreamItemsFactoryTest {
         val screen = factory.create(transaction, isLiveStream = true, expandedKeys = emptySet(), nowMs = NOW)
 
         assertThat(screen.summary.isLive).isFalse()
-        assertThat(screen.items.none { it is StreamItem.Waiting }).isTrue()
     }
 
     @Test
@@ -78,7 +76,6 @@ internal class GrpcStreamItemsFactoryTest {
 
         assertThat(screen.summary.status).isEqualTo("No status")
         assertThat(screen.summary.duration).isEqualTo("—")
-        assertThat(screen.items.none { it is StreamItem.Waiting }).isTrue()
     }
 
     @Test

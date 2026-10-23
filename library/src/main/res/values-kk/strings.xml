@@ -118,7 +118,6 @@
     <string name="chucker_grpc_no_status">Күйі жоқ</string>
     <string name="chucker_grpc_metadata_count">Метадеректер: %1$d</string>
     <string name="chucker_grpc_headers_count">Тақырыптар: %1$d</string>
-    <string name="chucker_grpc_waiting">Ағын ашық, хабарламалар күтілуде</string>
     <string name="chucker_grpc_lines_shown">Көрсетілген жолдар: %1$d / %2$d</string>
     <string name="chucker_grpc_message_partial">Хабарламаның тек басы көрсетілген</string>
     <string name="chucker_grpc_message_truncated">Мазмұн шегінде қиылды</string>

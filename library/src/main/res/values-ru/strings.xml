@@ -118,7 +118,6 @@
     <string name="chucker_grpc_no_status">Нет статуса</string>
     <string name="chucker_grpc_metadata_count">Метаданные: %1$d</string>
     <string name="chucker_grpc_headers_count">Заголовки: %1$d</string>
-    <string name="chucker_grpc_waiting">Поток открыт, ожидание сообщений</string>
     <string name="chucker_grpc_lines_shown">Показано строк: %1$d из %2$d</string>
     <string name="chucker_grpc_message_partial">Показано только начало сообщения</string>
     <string name="chucker_grpc_message_truncated">Обрезано по лимиту содержимого</string>

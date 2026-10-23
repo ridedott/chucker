@@ -46,8 +46,6 @@ internal class GrpcStreamItemsFactory(
         val items =
             buildList {
                 if (isExpanded) add(StreamItem.Details(details(transaction), transaction.error))
-                // No time here: the summary shows how long the stream has been open.
-                if (isLive) add(StreamItem.Waiting)
                 val events = transaction.getGrpcEvents()
                 for (position in events.indices.reversed()) {
                     add(StreamItem.Event(eventRow(position, events[position], transaction, statusColor, expandedKeys)))

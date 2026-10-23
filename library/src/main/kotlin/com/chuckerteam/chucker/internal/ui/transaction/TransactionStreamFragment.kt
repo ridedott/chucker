@@ -69,7 +69,7 @@ internal class TransactionStreamFragment : Fragment() {
         itemsFactory = GrpcStreamItemsFactory(requireContext())
         val isPulseEnabled = GrpcPresentation.areAnimationsEnabled(requireContext())
         summaryBinder = StreamSummaryBinder(binding.summary, isPulseEnabled) { toggle(GrpcStreamAdapter.KEY_DETAILS) }
-        streamAdapter = GrpcStreamAdapter(isPulseEnabled, onToggle = ::toggle, onOpenMessage = ::openMessage)
+        streamAdapter = GrpcStreamAdapter(onToggle = ::toggle, onOpenMessage = ::openMessage)
         binding.streamRecyclerView.apply {
             adapter = streamAdapter
             // Rows only change when expanded or collapsed, which looks better without the change animation.
