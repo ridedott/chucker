@@ -45,6 +45,9 @@ internal class TransactionStreamFragment : Fragment() {
     // -1 until the first render, so opening a stream doesn't count its events as new.
     private var renderedEventCount = -1
 
+    // Set when the details are opened, until the screen that shows them is rendered.
+    private var isOpeningDetails = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setHasOptionsMenu(true)
@@ -130,6 +133,7 @@ internal class TransactionStreamFragment : Fragment() {
 
     private fun toggle(key: String) {
         if (!expandedKeys.remove(key)) expandedKeys += key
+        isOpeningDetails = key == GrpcStreamAdapter.KEY_DETAILS && key in expandedKeys
         val transaction = viewModel.transaction.value ?: return
         render(transaction, viewModel.isLive.value == true)
     }
@@ -160,8 +164,16 @@ internal class TransactionStreamFragment : Fragment() {
 
         val previousEventCount = renderedEventCount
         val wasAtTop = isAtTop()
+        val showDetails = isOpeningDetails
         renderedEventCount = eventCount
+        isOpeningDetails = false
         streamAdapter.submitList(screen.items) {
+            // The details are the first row, which is added above the list's first visible row.
+            if (showDetails) {
+                binding.newMessagesButton.isVisible = false
+                binding.streamRecyclerView.scrollToPosition(0)
+                return@submitList
+            }
             if (previousEventCount < 0 || eventCount <= previousEventCount) return@submitList
             // The list keeps its first visible row in place, so new rows above it need a scroll to be seen.
             if (wasAtTop) binding.streamRecyclerView.scrollToPosition(0) else binding.newMessagesButton.isVisible = true
