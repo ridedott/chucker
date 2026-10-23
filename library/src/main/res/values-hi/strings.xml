@@ -8,6 +8,7 @@
     <string name="chucker_request">अनुरोध</string>
     <string name="chucker_response">प्रतिक्रिया</string>
     <string name="chucker_url">URL</string>
+    <string name="chucker_host_ip">होस्ट IP</string>
     <string name="chucker_method">मेथड</string>
     <string name="chucker_protocol">प्रोटोकॉल</string>
     <string name="chucker_status">स्थिति</string>
