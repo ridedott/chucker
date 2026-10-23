@@ -118,7 +118,6 @@
     <string name="chucker_grpc_no_status">कोई स्थिति नहीं</string>
     <string name="chucker_grpc_metadata_count">मेटाडेटा: %1$d</string>
     <string name="chucker_grpc_headers_count">हेडर: %1$d</string>
-    <string name="chucker_grpc_waiting">स्ट्रीम खुली है, संदेशों की प्रतीक्षा है</string>
     <string name="chucker_grpc_lines_shown">दिखाई गई पंक्तियां: %2$d में से %1$d</string>
     <string name="chucker_grpc_message_partial">संदेश का केवल शुरुआती हिस्सा दिखाया गया है</string>
     <string name="chucker_grpc_message_truncated">सामग्री सीमा पर काटा गया</string>

@@ -118,7 +118,6 @@
     <string name="chucker_grpc_no_status">Holat yoʻq</string>
     <string name="chucker_grpc_metadata_count">Metamaʼlumotlar: %1$d</string>
     <string name="chucker_grpc_headers_count">Sarlavhalar: %1$d</string>
-    <string name="chucker_grpc_waiting">Oqim ochiq, xabarlar kutilmoqda</string>
     <string name="chucker_grpc_lines_shown">Koʻrsatilgan qatorlar: %1$d / %2$d</string>
     <string name="chucker_grpc_message_partial">Xabarning faqat boshi koʻrsatilgan</string>
     <string name="chucker_grpc_message_truncated">Kontent chegarasida kesildi</string>

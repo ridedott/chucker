@@ -123,7 +123,6 @@
     <string name="chucker_grpc_no_status">No status</string>
     <string name="chucker_grpc_metadata_count">Metadata: %1$d</string>
     <string name="chucker_grpc_headers_count">Headers: %1$d</string>
-    <string name="chucker_grpc_waiting">Stream open, waiting for messages</string>
     <string name="chucker_grpc_lines_shown">Lines shown: %1$d of %2$d</string>
     <string name="chucker_grpc_message_partial">Only the start of the message is shown</string>
     <string name="chucker_grpc_message_truncated">Cut off at the content limit</string>

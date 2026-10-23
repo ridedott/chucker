@@ -118,7 +118,6 @@
     <string name="chucker_grpc_no_status">بلا حالة</string>
     <string name="chucker_grpc_metadata_count">البيانات الوصفية: %1$d</string>
     <string name="chucker_grpc_headers_count">الترويسات: %1$d</string>
-    <string name="chucker_grpc_waiting">البث مفتوح، بانتظار الرسائل</string>
     <string name="chucker_grpc_lines_shown">الأسطر المعروضة: %1$d من %2$d</string>
     <string name="chucker_grpc_message_partial">تُعرض بداية الرسالة فقط</string>
     <string name="chucker_grpc_message_truncated">اقتُطع عند حد المحتوى</string>

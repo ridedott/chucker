@@ -26,7 +26,6 @@ import com.chuckerteam.chucker.databinding.ChuckerItemStreamDetailRowBinding
 import com.chuckerteam.chucker.databinding.ChuckerListItemStreamDetailsBinding
 import com.chuckerteam.chucker.databinding.ChuckerListItemStreamEventBinding
 import com.chuckerteam.chucker.databinding.ChuckerListItemStreamSummaryBinding
-import com.chuckerteam.chucker.databinding.ChuckerListItemStreamWaitingBinding
 import com.chuckerteam.chucker.internal.data.entity.GrpcEvent
 import com.chuckerteam.chucker.internal.data.entity.HttpHeader
 import com.chuckerteam.chucker.internal.support.FormatUtils
@@ -54,11 +53,6 @@ internal sealed interface StreamItem {
         val row: StreamEventRow,
     ) : StreamItem {
         override val id: String get() = "event:${row.position}"
-    }
-
-    /** Shown above the newest event while the stream is open. */
-    data object Waiting : StreamItem {
-        override val id: String get() = "waiting"
     }
 }
 
@@ -105,7 +99,6 @@ internal data class StreamEventRow(
  * start, with a way to open the full message.
  */
 internal class GrpcStreamAdapter(
-    private val isPulseEnabled: Boolean,
     private val onToggle: (key: String) -> Unit,
     private val onOpenMessage: (position: Int) -> Unit,
 ) : ListAdapter<StreamItem, RecyclerView.ViewHolder>(DiffCallback) {
@@ -116,7 +109,6 @@ internal class GrpcStreamAdapter(
         when (getItem(position)) {
             is StreamItem.Details -> TYPE_DETAILS
             is StreamItem.Event -> TYPE_EVENT
-            is StreamItem.Waiting -> TYPE_WAITING
         }
 
     override fun onCreateViewHolder(
@@ -126,7 +118,6 @@ internal class GrpcStreamAdapter(
         val inflater = LayoutInflater.from(parent.context)
         return when (viewType) {
             TYPE_DETAILS -> DetailsViewHolder(ChuckerListItemStreamDetailsBinding.inflate(inflater, parent, false))
-            TYPE_WAITING -> WaitingViewHolder(ChuckerListItemStreamWaitingBinding.inflate(inflater, parent, false))
             else -> EventViewHolder(ChuckerListItemStreamEventBinding.inflate(inflater, parent, false))
         }
     }
@@ -138,13 +129,7 @@ internal class GrpcStreamAdapter(
         when (val item = getItem(position)) {
             is StreamItem.Details -> (holder as DetailsViewHolder).bind(item)
             is StreamItem.Event -> (holder as EventViewHolder).bind(item.row)
-            is StreamItem.Waiting -> (holder as WaitingViewHolder).updatePulse()
         }
-    }
-
-    override fun onViewAttachedToWindow(holder: RecyclerView.ViewHolder) {
-        // Animations stop when a view is detached, so they are restarted when it comes back.
-        if (holder is WaitingViewHolder) holder.updatePulse()
     }
 
     class DetailsViewHolder(
@@ -259,12 +244,6 @@ internal class GrpcStreamAdapter(
         }
     }
 
-    inner class WaitingViewHolder(
-        private val binding: ChuckerListItemStreamWaitingBinding,
-    ) : RecyclerView.ViewHolder(binding.root) {
-        fun updatePulse() = binding.dot.setPulsing(isPulseEnabled)
-    }
-
     private class PreparedMessage(
         val text: CharSequence,
         val isPartial: Boolean,
@@ -279,7 +258,6 @@ internal class GrpcStreamAdapter(
 
         private const val TYPE_DETAILS = 0
         private const val TYPE_EVENT = 1
-        private const val TYPE_WAITING = 2
 
         private const val MAX_INLINE_LINES = 12
         private const val MAX_INLINE_CHARS = 2_000
