@@ -5,6 +5,17 @@ group = GROUP
 version = VERSION_NAME
 
 publishing {
+    repositories {
+        // Dott's builds are published to this repository's GitHub Packages by publish-github-packages.yaml.
+        maven {
+            name = 'GitHubPackages'
+            url = 'https://maven.pkg.github.com/ridedott/chucker'
+            credentials {
+                username = System.getenv('GITHUB_ACTOR')
+                password = System.getenv('GITHUB_TOKEN')
+            }
+        }
+    }
     publications {
         release(MavenPublication) {
             afterEvaluate {
