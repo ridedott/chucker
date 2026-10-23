@@ -30,4 +30,9 @@
     <color name="chucker_json_boolean_color">#9FA162</color>
 
     <color name="chucker_copy_icon_color">#CCFFFFFF</color>
+    <color name="chucker_status_live">#59CC94</color>
+    <color name="chucker_live_background">#1D3B2C</color>
+    <color name="chucker_stream_summary_background">#1E2328</color>
+    <color name="chucker_stream_summary_divider">#2E353C</color>
+    <color name="chucker_code_block_background">#1E1E1E</color>
 </resources>

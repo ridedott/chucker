@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center"
+    android:paddingHorizontal="@dimen/chucker_quad_grid"
+    android:paddingVertical="@dimen/chucker_doub_grid"
+    android:text="@string/chucker_active_streams_footer"
+    android:textColor="?android:attr/textColorSecondary" />

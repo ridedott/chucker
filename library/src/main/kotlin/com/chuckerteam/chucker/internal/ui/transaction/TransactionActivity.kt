@@ -10,7 +10,9 @@ import androidx.activity.viewModels
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
+import androidx.fragment.app.commit
 import androidx.lifecycle.Observer
 import androidx.lifecycle.lifecycleScope
 import androidx.viewpager.widget.ViewPager
@@ -35,6 +37,7 @@ internal class TransactionActivity : BaseChuckerActivity() {
     }
 
     private lateinit var transactionBinding: ChuckerActivityTransactionBinding
+    private var isShowingStream = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,16 +47,49 @@ internal class TransactionActivity : BaseChuckerActivity() {
             setContentView(root)
             applyInset()
             setSupportActionBar(toolbar)
-            setupViewPager(viewPager)
-            tabLayout.setupWithViewPager(viewPager)
         }
 
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
+
+        // The list says whether the call is a gRPC stream, so its screen shows up right away.
+        if (intent.getBooleanExtra(EXTRA_IS_GRPC_STREAM, false)) showStream() else showTabs()
 
         viewModel.transactionTitle.observe(
             this,
             Observer { transactionBinding.toolbarTitle.text = it },
         )
+        viewModel.transactionSubtitle.observe(this) { subtitle ->
+            val hasSubtitle = !subtitle.isNullOrEmpty()
+            transactionBinding.toolbarSubtitle.text = subtitle
+            transactionBinding.toolbarSubtitle.isVisible = hasSubtitle
+            // The app bar only fits two lines.
+            transactionBinding.toolbarTitle.maxLines = if (hasSubtitle) 1 else 2
+        }
+        viewModel.isGrpcStream.observe(this) { isGrpcStream -> if (isGrpcStream) showStream() }
+        viewModel.isGrpc.observe(this) { invalidateOptionsMenu() }
+    }
+
+    private fun showTabs() {
+        with(transactionBinding) {
+            setupViewPager(viewPager)
+            tabLayout.setupWithViewPager(viewPager)
+        }
+    }
+
+    private fun showStream() {
+        if (isShowingStream) return
+        isShowingStream = true
+        with(transactionBinding) {
+            tabLayout.setupWithViewPager(null)
+            viewPager.adapter = null
+            tabLayout.isVisible = false
+            viewPager.isVisible = false
+            streamContainer.isVisible = true
+        }
+        if (supportFragmentManager.findFragmentById(R.id.streamContainer) == null) {
+            supportFragmentManager.commit { replace(R.id.streamContainer, TransactionStreamFragment()) }
+        }
+        invalidateOptionsMenu()
     }
 
     private fun applyInset() {
@@ -81,6 +117,8 @@ internal class TransactionActivity : BaseChuckerActivity() {
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.chucker_transaction, menu)
         setUpUrlEncoding(menu)
+        // A gRPC call can't be replayed with curl.
+        menu.findItem(R.id.share_curl).isVisible = viewModel.isGrpc.value != true
         return super.onCreateOptionsMenu(menu)
     }
 
@@ -199,14 +237,17 @@ internal class TransactionActivity : BaseChuckerActivity() {
         private const val EXPORT_TXT_FILE_NAME = "transaction.txt"
         private const val EXPORT_HAR_FILE_NAME = "transaction.har"
         private const val EXTRA_TRANSACTION_ID = "transaction_id"
+        private const val EXTRA_IS_GRPC_STREAM = "is_grpc_stream"
         private var selectedTabPosition = 0
 
         fun start(
             context: Context,
             transactionId: Long,
+            isGrpcStream: Boolean = false,
         ) {
             val intent = Intent(context, TransactionActivity::class.java)
             intent.putExtra(EXTRA_TRANSACTION_ID, transactionId)
+            intent.putExtra(EXTRA_IS_GRPC_STREAM, isGrpcStream)
             context.startActivity(intent)
         }
     }

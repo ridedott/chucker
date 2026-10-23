@@ -39,6 +39,7 @@ import com.chuckerteam.chucker.sample.compose.theme.ChuckerTheme
  * @param onInterceptorTypeLabelClick called when the interceptor label is clicked.
  * @param onDoHttp performs an HTTP call.
  * @param onDoGraphQL performs a GraphQL call.
+ * @param onDoGrpc performs gRPC calls of every type.
  * @param onLaunchChucker launches Chucker UI directly.
  * @param onExportToLogFile exports logs to file.
  * @param onExportToHarFile exports HAR to file.
@@ -51,6 +52,7 @@ internal fun ChuckerSampleControls(
     onInterceptorTypeLabelClick: () -> Unit,
     onDoHttp: () -> Unit,
     onDoGraphQL: () -> Unit,
+    onDoGrpc: () -> Unit,
     onLaunchChucker: () -> Unit,
     onExportToLogFile: () -> Unit,
     onExportToHarFile: () -> Unit,
@@ -110,11 +112,13 @@ internal fun ChuckerSampleControls(
         listOf(
             ChuckerTestTags.CONTROLS_DO_HTTP_BUTTON,
             ChuckerTestTags.CONTROLS_DO_GRAPHQL_BUTTON,
+            ChuckerTestTags.CONTROLS_DO_GRPC_BUTTON,
         )
 
     listOf(
         stringResource(R.string.do_http_activity) to onDoHttp,
         stringResource(R.string.do_graphql_activity) to onDoGraphQL,
+        stringResource(R.string.do_grpc_activity) to onDoGrpc,
     ).forEachIndexed { index, (label, action) ->
         Button(
             onClick = action,
@@ -219,6 +223,9 @@ private fun ChuckerSampleControlsPreview() {
                 onDoGraphQL = {
                     // DO Nothing
                 },
+                onDoGrpc = {
+                    // DO Nothing
+                },
                 onLaunchChucker = {
                     // DO Nothing
                 },
@@ -265,6 +272,9 @@ private fun ChuckerSampleControlsTabletPreview() {
                     // DO Nothing
                 },
                 onDoGraphQL = {
+                    // DO Nothing
+                },
+                onDoGrpc = {
                     // DO Nothing
                 },
                 onLaunchChucker = {

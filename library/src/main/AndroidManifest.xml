@@ -23,6 +23,10 @@
             android:parentActivityName="com.chuckerteam.chucker.internal.ui.MainActivity"
             android:theme="@style/Chucker.Theme" />
 
+        <activity
+            android:name="com.chuckerteam.chucker.internal.ui.transaction.GrpcMessageActivity"
+            android:theme="@style/Chucker.Theme" />
+
         <service
             android:name="com.chuckerteam.chucker.internal.support.ClearDatabaseService"
             android:exported="false"

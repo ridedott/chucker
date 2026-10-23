@@ -28,6 +28,7 @@ android {
 
     defaultConfig {
         minSdk = rootProject.extra["minSdkVersion"] as Int
+        consumerProguardFiles("proguard-rules.pro")
     }
 
     publishing {
@@ -56,6 +57,8 @@ tasks.withType<KotlinCompile>().configureEach {
 
 dependencies {
     api(libs.okhttp)
+    // Optional: only apps that use gRPC need ChuckerGrpcInterceptor.
+    compileOnly(libs.grpc.api)
     implementation(libs.jetbrains.kotlin.stdlib)
 }
 

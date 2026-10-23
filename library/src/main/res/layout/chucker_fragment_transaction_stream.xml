@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context="com.chuckerteam.chucker.internal.ui.transaction.TransactionStreamFragment">
+
+    <include
+        android:id="@+id/summary"
+        layout="@layout/chucker_list_item_stream_summary" />
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/streamRecyclerView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingTop="@dimen/chucker_half_grid"
+            android:paddingBottom="@dimen/chucker_doub_grid"
+            android:scrollbars="vertical"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+            tools:listitem="@layout/chucker_list_item_stream_event" />
+
+        <FrameLayout
+            android:id="@+id/fastScrollHandle"
+            android:layout_width="44dp"
+            android:layout_height="56dp"
+            android:layout_gravity="top|end"
+            android:alpha="0.45"
+            android:importantForAccessibility="no"
+            android:visibility="invisible"
+            tools:visibility="visible">
+
+            <View
+                android:layout_width="6dp"
+                android:layout_height="44dp"
+                android:layout_gravity="center_vertical|end"
+                android:layout_marginEnd="@dimen/chucker_half_grid"
+                android:background="@drawable/chucker_bg_pill"
+                android:backgroundTint="@color/chucker_color_primary" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/fastScrollLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|end"
+            android:layout_marginEnd="52dp"
+            android:background="@drawable/chucker_bg_pill"
+            android:backgroundTint="@color/chucker_color_primary"
+            android:elevation="2dp"
+            android:fontFamily="sans-serif-medium"
+            android:maxLines="1"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="@dimen/chucker_base_grid"
+            android:textColor="@android:color/white"
+            android:textSize="13sp"
+            android:visibility="invisible"
+            tools:text="+1.1 s · Received #3 · 26 B"
+            tools:visibility="visible" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/newMessagesButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|center_horizontal"
+            android:layout_margin="@dimen/chucker_base_grid"
+            android:text="@string/chucker_grpc_new_messages"
+            android:textAllCaps="false"
+            android:visibility="gone"
+            app:cornerRadius="20dp"
+            app:icon="@drawable/chucker_ic_arrow_up"
+            app:iconGravity="textEnd"
+            tools:visibility="visible" />
+    </FrameLayout>
+</LinearLayout>

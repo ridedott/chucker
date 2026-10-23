@@ -36,4 +36,9 @@
 
     <color name="chucker_copy_icon_color">#80474747</color>
 
+    <color name="chucker_status_live">#00700A</color>
+    <color name="chucker_live_background">#DFF1E0</color>
+    <color name="chucker_stream_summary_background">#F3F6F9</color>
+    <color name="chucker_stream_summary_divider">#DDE3E9</color>
+    <color name="chucker_code_block_background">#F5F5F5</color>
 </resources>

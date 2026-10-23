@@ -11,6 +11,13 @@ internal object JsonConverter {
             .create()
     }
 
+    /** Writes JSON without indentation, to keep what is stored in the database small. */
+    val compactInstance: Gson by lazy {
+        GsonBuilder()
+            .disableHtmlEscaping()
+            .create()
+    }
+
     val instance: Gson by lazy {
         nonNullSerializerInstance
             .newBuilder()

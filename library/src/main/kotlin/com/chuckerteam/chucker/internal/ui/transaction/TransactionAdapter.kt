@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.res.ColorStateList
 import android.util.TypedValue
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.ContextCompat
@@ -16,6 +17,7 @@ import com.chuckerteam.chucker.R
 import com.chuckerteam.chucker.databinding.ChuckerListItemTransactionBinding
 import com.chuckerteam.chucker.internal.data.entity.HttpTransaction
 import com.chuckerteam.chucker.internal.data.entity.HttpTransactionTuple
+import com.chuckerteam.chucker.internal.support.GrpcStatusCodes
 import com.chuckerteam.chucker.internal.support.TransactionDiffCallback
 import java.text.DateFormat
 import javax.net.ssl.HttpsURLConnection
@@ -46,6 +48,12 @@ internal class TransactionAdapter internal constructor(
     private val color300: Int = ContextCompat.getColor(context, R.color.chucker_status_300)
     private val colorSelected =
         ContextCompat.getColor(context, R.color.chucker_status_multiple_selection)
+    private val colorLive: Int = ContextCompat.getColor(context, R.color.chucker_status_live)
+
+    /** The gRPC streams that are open, which are marked as live. */
+    private var liveIds: Set<Long> = emptySet()
+
+    private val isPulseEnabled = GrpcPresentation.areAnimationsEnabled(context)
 
     /** Fallback background from theme for unselected items */
     private val backgroundSelectableAttr =
@@ -70,6 +78,44 @@ internal class TransactionAdapter internal constructor(
         holder: TransactionViewHolder,
         position: Int,
     ) = holder.bind(getItem(position))
+
+    override fun onBindViewHolder(
+        holder: TransactionViewHolder,
+        position: Int,
+        payloads: List<Any>,
+    ) {
+        if (payloads.isNotEmpty() && payloads.all { it == PAYLOAD_LIVE_DURATION }) {
+            holder.bindLiveDuration(getItem(position))
+        } else {
+            super.onBindViewHolder(holder, position, payloads)
+        }
+    }
+
+    override fun onViewRecycled(holder: TransactionViewHolder) {
+        holder.setPulsing(false)
+    }
+
+    /**
+     * Marks the transactions with the given ids as open gRPC streams, refreshing only the rows that changed.
+     */
+    internal fun setLiveIds(ids: Set<Long>) {
+        if (ids == liveIds) return
+        val changedIds = (ids - liveIds) + (liveIds - ids)
+        liveIds = ids
+        currentList.forEachIndexed { position, transaction ->
+            if (transaction.id in changedIds) notifyItemChanged(position)
+        }
+    }
+
+    /** Updates how long the open gRPC streams have been running. */
+    internal fun refreshLiveDurations() {
+        if (liveIds.isEmpty()) return
+        currentList.forEachIndexed { position, transaction ->
+            if (isLive(transaction)) notifyItemChanged(position, PAYLOAD_LIVE_DURATION)
+        }
+    }
+
+    private fun isLive(tuple: HttpTransactionTuple): Boolean = tuple.id in liveIds && tuple.responseCode == null
 
     /**
      * Updates the adapter's internal selection mode state.
@@ -124,6 +170,7 @@ internal class TransactionAdapter internal constructor(
         private val itemBinding: ChuckerListItemTransactionBinding,
     ) : RecyclerView.ViewHolder(itemBinding.root) {
         private var transactionId: Long? = null
+        private val defaultDurationColors = itemBinding.duration.textColors
 
         init {
             itemView.setOnClickListener {
@@ -152,13 +199,24 @@ internal class TransactionAdapter internal constructor(
 
             itemBinding.apply {
                 displayGraphQlFields(transaction.graphQlOperationName, transaction.graphQlDetected)
-                path.text = "${transaction.method} ${transaction.getFormattedPath(encode = false)}"
+                displayGrpcFields(transaction)
+                path.text =
+                    if (transaction.isGrpc) {
+                        val grpcPath = transaction.path
+                        "${GrpcPresentation.serviceName(grpcPath)}/${GrpcPresentation.methodName(grpcPath)}"
+                    } else {
+                        "${transaction.method} ${transaction.getFormattedPath(encode = false)}"
+                    }
                 host.text = transaction.host
                 timeStart.text = DateFormat.getTimeInstance().format(transaction.requestDate)
 
+                // gRPC only learns whether TLS is used once connected.
+                ssl.isVisible = !transaction.isGrpc || transaction.scheme != null
                 setProtocolImage(if (transaction.isSsl) ProtocolResources.Https() else ProtocolResources.Http())
 
-                if (transaction.status == HttpTransaction.Status.Complete) {
+                // A failed gRPC call still has a status code, which says more than "!!!".
+                val hasGrpcStatus = transaction.isGrpc && transaction.responseCode != null
+                if (transaction.status == HttpTransaction.Status.Complete || hasGrpcStatus) {
                     code.text = transaction.responseCode.toString()
                     duration.text = transaction.durationString
                     size.text = transaction.totalSizeString
@@ -168,12 +226,46 @@ internal class TransactionAdapter internal constructor(
                     size.text = ""
                 }
 
-                if (transaction.status == HttpTransaction.Status.Failed) {
+                if (transaction.status == HttpTransaction.Status.Failed && !hasGrpcStatus) {
                     code.text = "!!!"
                 }
             }
 
             setStatusColor(transaction)
+            bindLiveState(transaction)
+        }
+
+        private fun bindLiveState(transaction: HttpTransactionTuple) {
+            val isLive = isLive(transaction)
+            itemBinding.apply {
+                liveIndicator.isVisible = isLive
+                // Invisible rather than gone, as the other views are aligned with it.
+                code.visibility = if (isLive) View.INVISIBLE else View.VISIBLE
+                duration.setTextColor(if (isLive) ColorStateList.valueOf(colorLive) else defaultDurationColors)
+                if (isLive) {
+                    size.text = transaction.totalSizeString
+                    path.setTextColor(colorDefault)
+                    grpcInfo.setTextColor(colorDefault)
+                }
+            }
+            setPulsing(isLive)
+            bindLiveDuration(transaction)
+        }
+
+        fun bindLiveDuration(transaction: HttpTransactionTuple) {
+            if (!isLive(transaction)) return
+            val startedAt = transaction.requestDate ?: return
+            val elapsed = (System.currentTimeMillis() - startedAt).coerceAtLeast(0)
+            itemBinding.duration.text = GrpcPresentation.formatElapsed(elapsed)
+        }
+
+        fun setPulsing(isPulsing: Boolean) {
+            val dot = itemBinding.liveDot
+            if (isPulsing && isPulseEnabled) {
+                if (dot.animation == null) dot.startAnimation(GrpcPresentation.pulseAnimation())
+            } else {
+                dot.clearAnimation()
+            }
         }
 
         /**
@@ -221,21 +313,29 @@ internal class TransactionAdapter internal constructor(
         }
 
         private fun setStatusColor(transaction: HttpTransactionTuple) {
+            // gRPC codes are coloured like the HTTP status they're closest to.
+            val httpCode =
+                transaction.responseCode?.let { code ->
+                    if (transaction.isGrpc) GrpcStatusCodes.httpEquivalent(code) else code
+                }
             val color: Int =
                 when {
                     (transaction.status === HttpTransaction.Status.Failed) -> colorError
                     (transaction.status === HttpTransaction.Status.Requested) -> colorRequested
-                    (transaction.responseCode == null) -> colorDefault
-                    (transaction.responseCode!! >= HttpsURLConnection.HTTP_INTERNAL_ERROR) -> color500
-                    (transaction.responseCode!! >= HttpsURLConnection.HTTP_BAD_REQUEST) -> color400
-                    (transaction.responseCode!! >= HttpsURLConnection.HTTP_MULT_CHOICE) -> color300
+                    (httpCode == null) -> colorDefault
+                    (httpCode >= HttpsURLConnection.HTTP_INTERNAL_ERROR) -> color500
+                    (httpCode >= HttpsURLConnection.HTTP_BAD_REQUEST) -> color400
+                    (httpCode >= HttpsURLConnection.HTTP_MULT_CHOICE) -> color300
                     else -> colorDefault
                 }
             itemBinding.code.setTextColor(color)
             itemBinding.path.setTextColor(color)
+            itemBinding.grpcInfo.setTextColor(color)
         }
     }
 }
+
+private const val PAYLOAD_LIVE_DURATION = "live_duration"
 
 private fun ChuckerListItemTransactionBinding.displayGraphQlFields(
     graphQlOperationName: String?,
@@ -248,4 +348,23 @@ private fun ChuckerListItemTransactionBinding.displayGraphQlFields(
         graphqlPath.text = graphQlOperationName
             ?: root.resources.getString(R.string.chucker_graphql_operation_is_empty)
     }
+}
+
+private fun ChuckerListItemTransactionBinding.displayGrpcFields(transaction: HttpTransactionTuple) {
+    grpcBadge.isVisible = transaction.isGrpc
+    grpcInfo.isVisible = transaction.isGrpc
+    if (!transaction.isGrpc) return
+
+    val resources = root.resources
+    grpcInfo.text =
+        listOfNotNull(
+            transaction.responseCode?.let(GrpcStatusCodes::name),
+            resources.getString(GrpcPresentation.callTypeLabel(transaction.grpcMethodType)),
+            resources
+                .getString(
+                    R.string.chucker_grpc_message_counts,
+                    transaction.requestMessageCount,
+                    transaction.responseMessageCount,
+                ).takeIf { GrpcPresentation.isStreaming(transaction.grpcMethodType) },
+        ).joinToString(" · ")
 }

@@ -8,6 +8,7 @@ import com.chuckerteam.chucker.internal.data.entity.HttpTransaction
 import com.chuckerteam.chucker.internal.data.entity.HttpTransactionTuple
 import com.chuckerteam.chucker.internal.data.repository.HttpTransactionRepository
 import com.chuckerteam.chucker.internal.data.repository.RepositoryProvider
+import com.chuckerteam.chucker.internal.grpc.GrpcActiveStreams
 import com.chuckerteam.chucker.internal.support.NotificationHelper
 import io.mockk.MockKAnnotations
 import io.mockk.coEvery
@@ -24,6 +25,7 @@ import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -82,6 +84,43 @@ internal class MainViewModelTest {
         unmockkAll()
         viewModel.isItemSelected.removeObserver {}
     }
+
+    @Test
+    fun `the active streams filter only lists the open streams`() =
+        runTest(testDispatcher) {
+            val stream = mockk<HttpTransactionTuple>(relaxed = true) { every { id } returns STREAM_ID }
+            val other = mockk<HttpTransactionTuple>(relaxed = true) { every { id } returns STREAM_ID + 1 }
+            every { TextUtils.isDigitsOnly(any()) } returns false
+            every { transactionRepository.getExistingTransactionIds(setOf(STREAM_ID)) } returns
+                MutableLiveData(setOf(STREAM_ID))
+            val results = mutableListOf<List<HttpTransactionTuple>>()
+            viewModel.transactions.observeForever { results += it }
+            emptyTransactionList.value = listOf(stream, other)
+
+            GrpcActiveStreams.add(STREAM_ID)
+            try {
+                advanceUntilIdle()
+                assertEquals(setOf(STREAM_ID), viewModel.activeStreamIds.value)
+                assertEquals(listOf(stream, other), results.last())
+
+                viewModel.setActiveStreamsFilter(true)
+                assertEquals(listOf(stream), results.last())
+            } finally {
+                GrpcActiveStreams.remove(STREAM_ID)
+            }
+        }
+
+    @Test
+    fun `the list waits for nothing when no stream is open`() =
+        runTest {
+            val tuples = listOf(mockk<HttpTransactionTuple>(relaxed = true))
+            every { TextUtils.isDigitsOnly(any()) } returns false
+            viewModel.transactions.observeForever(transactionObserver)
+
+            emptyTransactionList.value = tuples
+
+            verify { transactionObserver.onChanged(tuples) }
+        }
 
     @Test
     fun `when search query is empty, getSortedTransactionTuples is called`() =
@@ -234,5 +273,9 @@ internal class MainViewModelTest {
 
         assertEquals(emptyList<Long>(), viewModel.getSelectedIds())
         assertEquals(false, viewModel.isItemSelected.value)
+    }
+
+    private companion object {
+        const val STREAM_ID = 42L
     }
 }

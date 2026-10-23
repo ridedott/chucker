@@ -23,7 +23,10 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.recyclerview.widget.ConcatAdapter
 import androidx.recyclerview.widget.DividerItemDecoration
 import com.chuckerteam.chucker.R
 import com.chuckerteam.chucker.api.Chucker
@@ -44,6 +47,7 @@ import com.chuckerteam.chucker.internal.ui.transaction.TransactionActivity
 import com.chuckerteam.chucker.internal.ui.transaction.TransactionAdapter
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okio.Source
@@ -57,6 +61,7 @@ internal class MainActivity :
 
     private lateinit var mainBinding: ChuckerActivityMainBinding
     private lateinit var transactionsAdapter: TransactionAdapter
+    private val activeStreamsFooterAdapter = ActiveStreamsFooterAdapter()
 
     private val applicationName: CharSequence
         get() = applicationInfo.loadLabel(packageManager)
@@ -95,7 +100,8 @@ internal class MainActivity :
                     if (viewModel.isItemSelected.value == true) {
                         viewModel.toggleSelection(transactionId)
                     } else {
-                        TransactionActivity.start(this, transactionId)
+                        val transaction = transactionsAdapter.currentList.firstOrNull { it.id == transactionId }
+                        TransactionActivity.start(this, transactionId, transaction?.isGrpcStream == true)
                     }
                 },
                 onTransactionLongClick = { transactionId ->
@@ -118,7 +124,7 @@ internal class MainActivity :
                         DividerItemDecoration.VERTICAL,
                     ),
                 )
-                adapter = transactionsAdapter
+                adapter = ConcatAdapter(transactionsAdapter, activeStreamsFooterAdapter)
             }
         }
 
@@ -126,7 +132,10 @@ internal class MainActivity :
             this,
         ) { transactionTuples ->
             transactionsAdapter.submitList(transactionTuples)
-            mainBinding.tutorialGroup.isVisible = transactionTuples.isEmpty()
+            // An empty filtered list doesn't mean that Chucker isn't set up.
+            mainBinding.tutorialGroup.isVisible =
+                transactionTuples.isEmpty() &&
+                viewModel.isActiveStreamsFilterEnabled.value != true
         }
 
         if (Chucker.showNotifications && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -135,6 +144,32 @@ internal class MainActivity :
 
         viewModel.isItemSelected.observe(this) { isSelected ->
             transactionsAdapter.setSelectionMode(isSelected)
+        }
+
+        setUpActiveStreams()
+    }
+
+    private fun setUpActiveStreams() {
+        val chip = mainBinding.activeStreamsChip
+        chip.setOnCheckedChangeListener { _, isChecked -> viewModel.setActiveStreamsFilter(isChecked) }
+        viewModel.isActiveStreamsFilterEnabled.observe(this) { isEnabled ->
+            chip.isChecked = isEnabled
+            activeStreamsFooterAdapter.isVisible = isEnabled
+        }
+        viewModel.activeStreamIds.observe(this) { ids ->
+            transactionsAdapter.setLiveIds(ids)
+            chip.text = getString(R.string.chucker_active_streams_filter, ids.size)
+            // The filter is only offered while streams are open, and turns itself off once they all close.
+            mainBinding.activeStreamsBar.isVisible = ids.isNotEmpty()
+            if (ids.isEmpty()) viewModel.setActiveStreamsFilter(false)
+        }
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                while (true) {
+                    delay(LIVE_DURATION_REFRESH_MS)
+                    transactionsAdapter.refreshLiveDurations()
+                }
+            }
         }
     }
 
@@ -449,5 +484,6 @@ internal class MainActivity :
         private const val EXPORT_TXT_FILE_NAME = "transactions.txt"
         private const val EXPORT_HAR_FILE_NAME = "transactions.har"
         private const val KEY_SELECTED_TRANSACTION_IDS = "selectedTransactionIds"
+        private const val LIVE_DURATION_REFRESH_MS = 1_000L
     }
 }

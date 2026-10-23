@@ -111,6 +111,7 @@ internal class TransactionViewModelTest {
     fun `transactionTitle formats raw path when encoding off`() {
         viewModel.transactionTitle.observeForever(transactionTitleObserver)
         val txn = mockk<HttpTransaction>()
+        every { txn.isGrpc } returns false
         every { txn.method } returns "POST"
         every { txn.getFormattedPath(encode = false) } returns "/foo?bar=1"
         every { txn.getFormattedPath(encode = true) } returns "/foo%3Fbar%3D1"
@@ -122,9 +123,24 @@ internal class TransactionViewModelTest {
     }
 
     @Test
+    fun `gRPC calls are titled by their method, with the service and host below`() {
+        viewModel.transactionTitle.observeForever(transactionTitleObserver)
+        viewModel.transactionSubtitle.observeForever {}
+        val txn = mockk<HttpTransaction>()
+        every { txn.isGrpc } returns true
+        every { txn.path } returns "/ride.v1.RideService/WatchRide"
+        every { txn.url } returns "https://api.example.com:443/ride.v1.RideService/WatchRide"
+        transaction.value = txn
+
+        assertEquals("WatchRide", viewModel.transactionTitle.value)
+        assertEquals("RideService · api.example.com:443", viewModel.transactionSubtitle.value)
+    }
+
+    @Test
     fun `transactionTitle formats encoded path when encoding on`() {
         viewModel.transactionTitle.observeForever(transactionTitleObserver)
         val txn = mockk<HttpTransaction>()
+        every { txn.isGrpc } returns false
         every { txn.method } returns "GET"
         every { txn.getFormattedPath(encode = false) } returns "/baz"
         every { txn.getFormattedPath(encode = true) } returns "/baz%20encoded"

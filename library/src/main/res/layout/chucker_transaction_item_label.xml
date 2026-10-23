@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/label"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="@dimen/chucker_doub_grid"
+    android:layout_marginTop="@dimen/chucker_doub_grid"
+    android:layout_marginBottom="@dimen/chucker_half_grid"
+    android:textAppearance="@style/Chucker.TextAppearance.Label"
+    android:textColor="@color/chucker_color_primary"
+    tools:text="#1 · +31 ms · 220 B" />

@@ -1,9 +1,11 @@
 package com.chuckerteam.chucker.internal.data.repository
 
 import androidx.lifecycle.LiveData
+import androidx.lifecycle.map
 import com.chuckerteam.chucker.internal.data.entity.HttpTransaction
 import com.chuckerteam.chucker.internal.data.entity.HttpTransactionTuple
 import com.chuckerteam.chucker.internal.data.room.ChuckerDatabase
+import com.chuckerteam.chucker.internal.grpc.GrpcActiveStreams
 import com.chuckerteam.chucker.internal.support.distinctUntilChanged
 
 internal class HttpTransactionDatabaseRepository(
@@ -34,6 +36,9 @@ internal class HttpTransactionDatabaseRepository(
 
     override fun getSortedTransactionTuples(): LiveData<List<HttpTransactionTuple>> = transactionDao.getSortedTuples()
 
+    override fun getExistingTransactionIds(ids: Set<Long>): LiveData<Set<Long>> =
+        transactionDao.getExistingIds(ids).map { it.toSet() }.distinctUntilChanged()
+
     override suspend fun deleteAllTransactions() {
         transactionDao.deleteAll()
     }
@@ -46,7 +51,8 @@ internal class HttpTransactionDatabaseRepository(
     override suspend fun updateTransaction(transaction: HttpTransaction): Int = transactionDao.update(transaction)
 
     override suspend fun deleteOldTransactions(threshold: Long) {
-        transactionDao.deleteBefore(threshold)
+        // A stream that is still open is kept, however long ago it started.
+        transactionDao.deleteBefore(threshold, keepIds = GrpcActiveStreams.ids.value)
     }
 
     override suspend fun getAllTransactions(): List<HttpTransaction> = transactionDao.getAll()

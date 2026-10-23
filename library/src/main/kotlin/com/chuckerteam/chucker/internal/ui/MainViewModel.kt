@@ -2,15 +2,19 @@ package com.chuckerteam.chucker.internal.ui
 
 import androidx.core.text.isDigitsOnly
 import androidx.lifecycle.LiveData
+import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.asLiveData
 import androidx.lifecycle.distinctUntilChanged
 import androidx.lifecycle.switchMap
 import androidx.lifecycle.viewModelScope
 import com.chuckerteam.chucker.internal.data.entity.HttpTransaction
 import com.chuckerteam.chucker.internal.data.entity.HttpTransactionTuple
 import com.chuckerteam.chucker.internal.data.repository.RepositoryProvider
+import com.chuckerteam.chucker.internal.grpc.GrpcActiveStreams
 import com.chuckerteam.chucker.internal.support.NotificationHelper
+import com.chuckerteam.chucker.internal.support.combineLatest
 import kotlinx.coroutines.launch
 
 internal class MainViewModel : ViewModel() {
@@ -29,7 +33,30 @@ internal class MainViewModel : ViewModel() {
      */
     private val mutableIsItemSelected = MutableLiveData(false)
 
-    internal val transactions: LiveData<List<HttpTransactionTuple>> =
+    /**
+     * Whether the list only shows the gRPC streams that are still open.
+     */
+    private val isActiveStreamsFilterOn = MutableLiveData(false)
+
+    /**
+     * The open gRPC streams that are still recorded, as clearing the list deletes them while they run.
+     */
+    internal val activeStreamIds: LiveData<Set<Long>> =
+        MediatorLiveData<Set<Long>>(emptySet())
+            .apply {
+                // Starts empty, so the list doesn't wait for the open streams to be known.
+                val existingIds =
+                    GrpcActiveStreams.ids.asLiveData().switchMap { ids ->
+                        if (ids.isEmpty()) {
+                            MutableLiveData(emptySet())
+                        } else {
+                            RepositoryProvider.transaction().getExistingTransactionIds(ids)
+                        }
+                    }
+                addSource(existingIds) { value = it }
+            }.distinctUntilChanged()
+
+    private val searchedTransactions: LiveData<List<HttpTransactionTuple>> =
         currentFilter.switchMap { searchQuery ->
             with(RepositoryProvider.transaction()) {
                 when {
@@ -39,6 +66,18 @@ internal class MainViewModel : ViewModel() {
                 }
             }
         }
+
+    internal val transactions: LiveData<List<HttpTransactionTuple>> =
+        searchedTransactions.combineLatest(isActiveStreamsFilterOn.combineLatest(activeStreamIds)) { tuples, filter ->
+            val (isFilterOn, activeIds) = filter
+            if (isFilterOn) tuples.filter { it.id in activeIds } else tuples
+        }
+
+    internal val isActiveStreamsFilterEnabled: LiveData<Boolean> = isActiveStreamsFilterOn.distinctUntilChanged()
+
+    internal fun setActiveStreamsFilter(isOn: Boolean) {
+        if (isActiveStreamsFilterOn.value != isOn) isActiveStreamsFilterOn.value = isOn
+    }
 
     /**
      * LiveData indicating whether any items are currently selected.

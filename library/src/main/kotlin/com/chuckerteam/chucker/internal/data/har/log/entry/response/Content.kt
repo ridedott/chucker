@@ -25,6 +25,11 @@ internal data class Content(
     constructor(transaction: HttpTransaction) : this(
         size = transaction.responsePayloadSize,
         mimeType = transaction.responseContentType ?: "application/octet-stream",
-        text = transaction.responseBody,
+        text =
+            if (transaction.isGrpc) {
+                transaction.getGrpcBodyText(isRequest = false, pretty = false)
+            } else {
+                transaction.responseBody
+            },
     )
 }

@@ -102,7 +102,15 @@ dependencies {
 
     api(libs.okhttp)
     api(libs.okhttp3.okhttp)
+    // Optional: only apps that use gRPC need ChuckerGrpcInterceptor.
+    compileOnly(libs.grpc.api)
+
     testImplementation(libs.mockwebserver)
+    testImplementation(libs.grpc.api)
+    testImplementation(libs.grpc.inprocess)
+    testImplementation(libs.grpc.stub)
+    testImplementation(libs.grpc.protobuf.lite)
+    testImplementation(libs.protobuf.javalite)
     testRuntimeOnly(libs.junit.engine)
     testRuntimeOnly(libs.junit.platform.launcher)
     testRuntimeOnly(libs.junit.vintage.engine)

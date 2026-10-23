@@ -10,6 +10,7 @@ import com.chuckerteam.chucker.internal.data.entity.assertTransaction
 import com.chuckerteam.chucker.internal.data.entity.assertTuples
 import com.chuckerteam.chucker.internal.data.entity.createRequest
 import com.chuckerteam.chucker.internal.data.entity.withResponseData
+import com.chuckerteam.chucker.internal.support.GrpcStatusCodes
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -145,11 +146,25 @@ internal class HttpTransactionDaoTest {
             insertTransaction(newer)
             assertRowCount(2)
 
-            testObject.deleteBefore(150L)
+            testObject.deleteBefore(150L, keepIds = emptyList())
 
             assertRowCount(1)
             assertRowCountMatchingId(older.id, 0)
             assertRowCountMatchingId(newer.id, 1)
+        }
+
+    @Test
+    fun `old transactions that are kept are not deleted`() =
+        runBlocking {
+            val openStream = createRequest().apply { requestDate = 100L }
+            val older = createRequest().apply { requestDate = 100L }
+            insertTransaction(openStream)
+            insertTransaction(older)
+
+            testObject.deleteBefore(150L, keepIds = listOf(openStream.id))
+
+            assertRowCountMatchingId(openStream.id, 1)
+            assertRowCountMatchingId(older.id, 0)
         }
 
     @Test
@@ -161,7 +176,7 @@ internal class HttpTransactionDaoTest {
             insertTransaction(newer)
             assertRowCount(2)
 
-            testObject.deleteBefore(100L)
+            testObject.deleteBefore(100L, keepIds = emptyList())
 
             assertRowCount(1)
             assertRowCountMatchingId(older.id, 0)
@@ -267,6 +282,36 @@ internal class HttpTransactionDaoTest {
             testObject.getFilteredTuples(codeQuery = "4%", pathQuery = "%").observeForever { result ->
                 assertTuples(listOf(transactionThree, transactionOne), result)
             }
+        }
+
+    @Test
+    fun `gRPC calls can be searched by status name`() =
+        runBlocking {
+            val grpcError = createGrpcRequest(statusCode = 14)
+            insertTransaction(createGrpcRequest(statusCode = 0))
+            insertTransaction(grpcError)
+
+            testObject.getFilteredTuples(codeQuery = "%", pathQuery = "%UNAVAILABLE%").observeForever { result ->
+                assertThat(result.map { it.id }).containsExactly(grpcError.id)
+            }
+        }
+
+    @Test
+    fun `only the ids of existing transactions are returned`() =
+        runBlocking {
+            val stream = createGrpcRequest(statusCode = null)
+            insertTransaction(stream)
+
+            testObject.getExistingIds(listOf(stream.id, stream.id + 1)).observeForever { result ->
+                assertThat(result).containsExactly(stream.id)
+            }
+        }
+
+    private fun createGrpcRequest(statusCode: Int?): HttpTransaction =
+        createRequest("/test.Echo/Unary").apply {
+            isGrpc = true
+            responseCode = statusCode
+            responseMessage = statusCode?.let(GrpcStatusCodes::name)
         }
 
     private suspend fun insertTransaction(transaction: HttpTransaction) {

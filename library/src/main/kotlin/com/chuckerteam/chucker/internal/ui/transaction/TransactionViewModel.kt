@@ -4,13 +4,16 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.asLiveData
+import androidx.lifecycle.distinctUntilChanged
 import androidx.lifecycle.map
 import com.chuckerteam.chucker.internal.data.entity.HttpTransaction
 import com.chuckerteam.chucker.internal.data.repository.RepositoryProvider
+import com.chuckerteam.chucker.internal.grpc.GrpcActiveStreams
 import com.chuckerteam.chucker.internal.support.combineLatest
 
 internal class TransactionViewModel(
-    transactionId: Long,
+    val transactionId: Long,
 ) : ViewModel() {
     private val mutableEncodeUrl = MutableLiveData<Boolean>(false)
 
@@ -21,10 +24,10 @@ internal class TransactionViewModel(
             .transaction()
             .getTransaction(transactionId)
             .combineLatest(encodeUrl) { transaction, encodeUrl ->
-                if (transaction != null) {
-                    "${transaction.method} ${transaction.getFormattedPath(encode = encodeUrl)}"
-                } else {
-                    ""
+                when {
+                    transaction == null -> ""
+                    transaction.isGrpc -> GrpcPresentation.methodName(transaction.path)
+                    else -> "${transaction.method} ${transaction.getFormattedPath(encode = encodeUrl)}"
                 }
             }
 
@@ -49,6 +52,36 @@ internal class TransactionViewModel(
             }
 
     val transaction: LiveData<HttpTransaction?> = RepositoryProvider.transaction().getTransaction(transactionId)
+
+    val isGrpc: LiveData<Boolean> =
+        transaction
+            .map { it?.isGrpc == true }
+            .distinctUntilChanged()
+
+    /** Whether the call is a gRPC stream, which gets its own screen instead of the usual tabs. */
+    val isGrpcStream: LiveData<Boolean> =
+        transaction
+            .map { it != null && it.isGrpc && GrpcPresentation.isStreaming(it.grpcMethodType) }
+            .distinctUntilChanged()
+
+    /** Whether the call is a gRPC stream that is still open. */
+    val isLive: LiveData<Boolean> =
+        GrpcActiveStreams.ids
+            .asLiveData()
+            .map { transactionId in it }
+            .distinctUntilChanged()
+
+    /**
+     * The service of a gRPC call and where it was made to. The title only names the method, so each
+     * fits on one line of the app bar.
+     */
+    val transactionSubtitle: LiveData<String?> =
+        transaction
+            .map { transaction ->
+                transaction?.takeIf { it.isGrpc }?.let {
+                    "${GrpcPresentation.serviceName(it.path)} · ${GrpcPresentation.authority(it.url)}"
+                }
+            }.distinctUntilChanged()
 
     val formatRequestBody: LiveData<Boolean> =
         doesRequestBodyRequireEncoding

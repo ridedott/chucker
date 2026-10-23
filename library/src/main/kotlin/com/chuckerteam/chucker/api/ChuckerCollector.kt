@@ -81,6 +81,40 @@ public class ChuckerCollector
         }
 
         /**
+         * Inserts [transaction] and returns its id once it is stored. Unlike [onRequestSent], the
+         * caller can rely on the write being complete, so later updates can't overtake it.
+         */
+        internal suspend fun insertTransaction(transaction: HttpTransaction): Long {
+            withContext(Dispatchers.IO) {
+                RepositoryProvider.transaction().insertTransaction(transaction)
+            }
+            if (showNotification) {
+                notificationHelper.show(transaction)
+            }
+            scope.launch(Dispatchers.IO) { retentionManager.doMaintenance() }
+            return transaction.id
+        }
+
+        /**
+         * Stores the latest state of a transaction previously added with [insertTransaction].
+         *
+         * @param notify whether to update the notification. Open streams are saved several times a
+         * second, which is more often than Android lets an app update its notifications.
+         */
+        internal suspend fun updateTransaction(
+            transaction: HttpTransaction,
+            notify: Boolean,
+        ) {
+            val updated =
+                withContext(Dispatchers.IO) {
+                    RepositoryProvider.transaction().updateTransaction(transaction)
+                }
+            if (notify && showNotification && updated > 0) {
+                notificationHelper.show(transaction)
+            }
+        }
+
+        /**
          * Export the Chucker transactions to a file. Please note that this function is blocking
          * and performs Disk I/O. Make sure you run it on a separate thread or coroutine.
          *

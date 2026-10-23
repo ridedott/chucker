@@ -47,11 +47,13 @@ import com.chuckerteam.chucker.sample.compose.theme.ChuckerTheme
  * @param onInterceptorTypeLabelClick Callback when the interceptor type label is clicked.
  * @param onDoHttp Called to perform a sample HTTP request.
  * @param onDoGraphQL Called to perform a sample GraphQL request.
+ * @param onDoGrpc Called to perform sample gRPC calls.
  * @param onLaunchChucker Called to open the Chucker transaction list UI.
  * @param onExportToLogFile Called to export network logs to a plaintext file.
  * @param onExportToHarFile Called to export network logs to a HAR (HTTP Archive) file.
  * @param isChuckerInOpMode If true, displays the Chucker-specific operation buttons.
  */
+@Suppress("LongParameterList")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ChuckerSampleMainScreen(
@@ -61,6 +63,7 @@ internal fun ChuckerSampleMainScreen(
     onInterceptorTypeLabelClick: () -> Unit,
     onDoHttp: () -> Unit,
     onDoGraphQL: () -> Unit,
+    onDoGrpc: () -> Unit,
     onLaunchChucker: () -> Unit,
     onExportToLogFile: () -> Unit,
     onExportToHarFile: () -> Unit,
@@ -111,6 +114,7 @@ internal fun ChuckerSampleMainScreen(
                             onInterceptorTypeLabelClick = onInterceptorTypeLabelClick,
                             onDoHttp = onDoHttp,
                             onDoGraphQL = onDoGraphQL,
+                            onDoGrpc = onDoGrpc,
                             onLaunchChucker = onLaunchChucker,
                             onExportToLogFile = onExportToLogFile,
                             onExportToHarFile = onExportToHarFile,
@@ -159,6 +163,7 @@ internal fun ChuckerSampleMainScreen(
                         onInterceptorTypeLabelClick = onInterceptorTypeLabelClick,
                         onDoHttp = onDoHttp,
                         onDoGraphQL = onDoGraphQL,
+                        onDoGrpc = onDoGrpc,
                         onLaunchChucker = onLaunchChucker,
                         onExportToLogFile = onExportToLogFile,
                         onExportToHarFile = onExportToHarFile,
@@ -218,6 +223,9 @@ private fun ChuckerSampleMainScreenPreview() {
             onDoGraphQL = {
                 // DO Nothing
             },
+            onDoGrpc = {
+                // DO Nothing
+            },
             onLaunchChucker = {
                 // DO Nothing
             },
@@ -262,6 +270,9 @@ private fun ChuckerSampleMainScreenTabletPreview() {
                 // DO Nothing
             },
             onDoGraphQL = {
+                // DO Nothing
+            },
+            onDoGrpc = {
                 // DO Nothing
             },
             onLaunchChucker = {

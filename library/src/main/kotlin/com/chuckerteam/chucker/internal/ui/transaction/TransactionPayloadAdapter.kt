@@ -14,6 +14,7 @@ import com.chuckerteam.chucker.databinding.ChuckerTransactionItemBodyLineBinding
 import com.chuckerteam.chucker.databinding.ChuckerTransactionItemCopyBinding
 import com.chuckerteam.chucker.databinding.ChuckerTransactionItemHeadersBinding
 import com.chuckerteam.chucker.databinding.ChuckerTransactionItemImageBinding
+import com.chuckerteam.chucker.databinding.ChuckerTransactionItemLabelBinding
 import com.chuckerteam.chucker.internal.support.ChessboardDrawable
 import com.chuckerteam.chucker.internal.support.SpanTextUtil
 import com.chuckerteam.chucker.internal.support.highlightWithDefinedColors
@@ -62,6 +63,11 @@ internal class TransactionBodyAdapter(
                 TransactionPayloadViewHolder.BodyLineViewHolder(bodyItemBinding)
             }
 
+            TYPE_LABEL -> {
+                val labelBinding = ChuckerTransactionItemLabelBinding.inflate(inflater, parent, false)
+                TransactionPayloadViewHolder.LabelViewHolder(labelBinding)
+            }
+
             TYPE_COPY -> {
                 val copyItemBinding =
                     ChuckerTransactionItemCopyBinding.inflate(inflater, parent, false)
@@ -87,6 +93,7 @@ internal class TransactionBodyAdapter(
             is TransactionPayloadItem.BodyLineItem -> TYPE_BODY_LINE
             is TransactionPayloadItem.ImageItem -> TYPE_IMAGE
             is TransactionPayloadItem.CopyItem -> TYPE_COPY
+            is TransactionPayloadItem.LabelItem -> TYPE_LABEL
         }
 
     internal fun highlightQueryWithColors(
@@ -169,6 +176,7 @@ internal class TransactionBodyAdapter(
         private const val TYPE_BODY_LINE = 2
         private const val TYPE_IMAGE = 3
         private const val TYPE_COPY = 4
+        private const val TYPE_LABEL = 5
     }
 
     /**
@@ -237,6 +245,16 @@ internal sealed class TransactionPayloadViewHolder(
         }
     }
 
+    internal class LabelViewHolder(
+        private val labelBinding: ChuckerTransactionItemLabelBinding,
+    ) : TransactionPayloadViewHolder(labelBinding.root) {
+        override fun bind(item: TransactionPayloadItem) {
+            if (item is TransactionPayloadItem.LabelItem) {
+                labelBinding.label.text = item.text
+            }
+        }
+    }
+
     internal class ImageViewHolder(
         private val imageBinding: ChuckerTransactionItemImageBinding,
     ) : TransactionPayloadViewHolder(imageBinding.root) {
@@ -289,5 +307,10 @@ internal sealed class TransactionPayloadItem {
     internal class ImageItem(
         val image: Bitmap,
         val luminance: Double?,
+    ) : TransactionPayloadItem()
+
+    /** A title above a section of the payload, such as a gRPC message or the trailers. */
+    internal class LabelItem(
+        val text: CharSequence,
     ) : TransactionPayloadItem()
 }
