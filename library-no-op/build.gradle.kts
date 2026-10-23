@@ -1,5 +1,6 @@
 import org.gradle.kotlin.dsl.withType
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -47,6 +48,9 @@ android {
 tasks.withType<KotlinCompile>().configureEach {
     compilerOptions {
         jvmTarget = JvmTarget.JVM_17
+        // Kotlin 2.1 metadata, so apps whose kapt can't read newer metadata (like Hilt's in rider-android) can use it.
+        languageVersion = KotlinVersion.KOTLIN_2_1
+        apiVersion = KotlinVersion.KOTLIN_2_1
         freeCompilerArgs.addAll(
             "-module-name",
             "com.github.ChuckerTeam.Chucker.library",

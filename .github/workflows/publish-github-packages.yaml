@@ -1,0 +1,32 @@
+name: Publish to GitHub Packages
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish:
+    if: ${{ github.repository == 'ridedott/chucker' }}
+    runs-on: [ubuntu-latest]
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - name: Checkout Repo
+      uses: actions/checkout@v6
+
+    - name: Setup Java
+      uses: actions/setup-java@v5
+      with:
+        distribution: 'zulu'
+        java-version: '21'
+
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v6
+
+    # The tag v4.4.0 publishes version 4.4.0.
+    - name: Publish
+      run: ./gradlew publishAllPublicationsToGitHubPackagesRepository -PVERSION_NAME="${GITHUB_REF_NAME#v}"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

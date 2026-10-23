@@ -3,6 +3,18 @@
 
 _A fork of [Chuck](https://github.com/jgilfelt/chuck)_
 
+> **Dott's fork.** Builds of this repository are published to GitHub Packages as `com.ridedott.chucker:library` and `com.ridedott.chucker:library-no-op`. Pushing a tag such as `v4.4.0` publishes version `4.4.0`. To use them, add the repository with a GitHub token that has `read:packages`:
+>
+> ```kotlin
+> maven("https://maven.pkg.github.com/ridedott/chucker") {
+>     credentials {
+>         username = "<GitHub username>"
+>         password = "<token with read:packages>"
+>     }
+>     content { includeGroup("com.ridedott.chucker") }
+> }
+> ```
+
 <p align="center">
   <img src="assets/ic_launcher-web.png" alt="chucker icon" width="30%"/>
 </p>
