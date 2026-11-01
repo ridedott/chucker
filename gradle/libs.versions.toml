@@ -30,7 +30,7 @@ retrofit = "3.0.0"
 wire = "7.1.0"
 grpc = "1.81.0"
 protobuf = "4.34.1"
-cronetOkhttp = "0.1.1"
+cronetOkhttp = "0.1.2"
 playServicesCronet = "18.1.1"
 
 # Debug and Quality Control
